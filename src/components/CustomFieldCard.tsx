@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { Edit, Save, X, Trash2, Eye, EyeOff, Loader2, FileText, Tag } from 'lucide-react';
+import { Edit, Save, X, Trash2, Eye, EyeOff, Loader2, FileText, Tag, ChevronDown, ChevronUp, PenSquare } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -8,6 +8,8 @@ import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { http } from '@/lib/http-client';
 import { useToast } from '@/components/ui/use-toast';
 
@@ -39,13 +41,18 @@ const CustomFieldCard: React.FC<CustomFieldCardProps> = ({ field, onUpdate, onDe
   const [isShowingValue, setIsShowingValue] = useState(true);
   const [isLoadingValue, setIsLoadingValue] = useState(false);
   const [valueError, setValueError] = useState<string | null>(null);
+  const [isExpanded, setIsExpanded] = useState(false);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [editedValue, setEditedValue] = useState<string>('');
   const { toast } = useToast();
   
   useEffect(() => {
     // Actualizar el campo editado cuando cambia el campo original
     setEditedField(field);
-    // Mostrar el valor automáticamente si existe
-    setIsShowingValue(true);
+    // Inicializar el valor editado
+    if (field.value !== undefined && field.value !== null) {
+      setEditedValue(typeof field.value === 'object' ? JSON.stringify(field.value, null, 2) : String(field.value));
+    }
   }, [field]);
   
   const handleEdit = () => {
@@ -75,6 +82,50 @@ const CustomFieldCard: React.FC<CustomFieldCardProps> = ({ field, onUpdate, onDe
       ...prev,
       [name]: value
     }));
+  };
+  
+  const handleOpenEditDialog = () => {
+    if (!isEditable) return;
+    
+    if (field.value !== undefined && field.value !== null) {
+      setEditedValue(typeof field.value === 'object' ? JSON.stringify(field.value, null, 2) : String(field.value));
+    } else {
+      setEditedValue('');
+    }
+    
+    setIsEditDialogOpen(true);
+  };
+  
+  const handleSaveValue = () => {
+    let parsedValue = editedValue;
+    
+    // Intentar parsear como JSON si parece ser un objeto
+    if (typeof field.value === 'object' && editedValue.trim().startsWith('{')) {
+      try {
+        parsedValue = JSON.parse(editedValue);
+      } catch (error) {
+        toast({
+          title: "Error en formato JSON",
+          description: "El valor no es un JSON válido",
+          variant: "destructive"
+        });
+        return;
+      }
+    }
+    
+    onUpdate({
+      ...field,
+      value: parsedValue,
+      hasValue: true,
+      updatedAt: new Date().toISOString()
+    });
+    
+    setIsEditDialogOpen(false);
+    
+    toast({
+      title: "Valor actualizado",
+      description: "El valor del campo ha sido actualizado correctamente"
+    });
   };
   
   const getTypeColor = (type: string) => {
@@ -141,88 +192,80 @@ const CustomFieldCard: React.FC<CustomFieldCardProps> = ({ field, onUpdate, onDe
     return String(value);
   };
   
+  // Vista previa del valor (para tarjeta colapsada)
+  const getValuePreview = () => {
+    if (field.value === undefined || field.value === null) return 'Sin valor';
+    
+    if (valueIsObject) return 'Objeto JSON';
+    
+    if (typeof field.value === 'string') {
+      return truncateText(field.value, 50);
+    }
+    
+    return String(field.value);
+  };
+  
   return (
-    <Card className={`border shadow-sm hover:shadow transition-all duration-200 ${field.hasValue ? 'border-gray-200' : 'border-gray-100 opacity-70'}`}>
-      <CardHeader className="p-4 pb-3 border-b border-gray-100">
-        {isEditing ? (
-          <div className="space-y-2">
-            <Label htmlFor={`field-name-${field.id}`}>Nombre</Label>
-            <Input
-              id={`field-name-${field.id}`}
-              value={editedField.name}
-              onChange={(e) => handleChange('name', e.target.value)}
-              className="border-gray-200"
-            />
+    <>
+      <Collapsible 
+        open={isExpanded} 
+        onOpenChange={setIsExpanded}
+        className="border rounded-lg shadow-sm hover:shadow bg-white transition-all duration-200 mb-4"
+      >
+        <div className="flex items-center justify-between p-4 border-b border-gray-100">
+          <div className="flex items-center gap-2">
+            <CollapsibleTrigger asChild>
+              <Button variant="ghost" size="sm" className="p-0 h-7 w-7">
+                {isExpanded ? 
+                  <ChevronUp className="h-5 w-5 text-gray-500" /> : 
+                  <ChevronDown className="h-5 w-5 text-gray-500" />
+                }
+              </Button>
+            </CollapsibleTrigger>
+            <div>
+              <CardTitle className="text-lg font-medium">{field.name}</CardTitle>
+              <div className="flex items-center gap-2 mt-1">
+                <span className={`text-xs px-2 py-0.5 rounded-full ${getTypeColor(field.type)}`}>
+                  {getTypeLabel(field.type)}
+                </span>
+                {field.required && (
+                  <span className="text-xs bg-red-100 text-red-800 px-2 py-0.5 rounded">
+                    Requerido
+                  </span>
+                )}
+              </div>
+            </div>
           </div>
-        ) : (
-          <div className="flex justify-between items-start">
-            <CardTitle className="text-lg font-medium">{field.name}</CardTitle>
-            <span className={`text-xs px-2 py-1 rounded-full ${getTypeColor(field.type)}`}>
-              {getTypeLabel(field.type)}
-            </span>
+          
+          <div className="flex items-center gap-2">
+            {isEditable && field.hasValue && (
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                onClick={handleOpenEditDialog}
+                className="h-8 text-blue-600 hover:text-blue-800 hover:bg-blue-50"
+              >
+                <PenSquare className="h-4 w-4 mr-1" />
+                Editar valor
+              </Button>
+            )}
+          </div>
+        </div>
+        
+        {!isExpanded && field.hasValue && (
+          <div className="px-4 py-2 text-sm text-gray-600 flex items-center gap-2">
+            <Tag className="h-3.5 w-3.5 text-gray-500" />
+            <span className="font-medium">Valor:</span>
+            <span className="text-gray-700">{getValuePreview()}</span>
           </div>
         )}
-      </CardHeader>
-      
-      <CardContent className="p-4 space-y-3">
-        {isEditing ? (
-          <>
-            <div className="space-y-2">
-              <Label htmlFor={`field-type-${field.id}`}>Tipo</Label>
-              <Select 
-                value={editedField.type} 
-                onValueChange={(value) => handleChange('type', value)}
-              >
-                <SelectTrigger id={`field-type-${field.id}`}>
-                  <SelectValue placeholder="Seleccionar tipo" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="0">Texto</SelectItem>
-                  <SelectItem value="1">Número</SelectItem>
-                  <SelectItem value="2">Fecha</SelectItem>
-                  <SelectItem value="3">Selección</SelectItem>
-                  <SelectItem value="4">Checkbox</SelectItem>
-                  <SelectItem value="5">Texto largo</SelectItem>
-                  <SelectItem value="-1">Sistema</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor={`field-desc-${field.id}`}>Descripción</Label>
-              <Input
-                id={`field-desc-${field.id}`}
-                value={editedField.description || ''}
-                onChange={(e) => handleChange('description', e.target.value)}
-                className="border-gray-200"
-              />
-            </div>
-            
-            <div className="flex items-center space-x-2 pt-2">
-              <Input
-                type="checkbox"
-                id={`field-required-${field.id}`}
-                checked={editedField.required || false}
-                onChange={(e) => handleChange('required', e.target.checked)}
-                className="h-4 w-4"
-              />
-              <Label htmlFor={`field-required-${field.id}`}>Requerido</Label>
-            </div>
-          </>
-        ) : (
-          <>
+        
+        <CollapsibleContent>
+          <CardContent className="p-4 space-y-3">
             {field.description && (
               <div className="flex items-start space-x-2 text-sm text-gray-600 mt-2">
                 <FileText className="h-4 w-4 text-gray-400 mt-0.5 flex-shrink-0" />
                 <div>{field.description}</div>
-              </div>
-            )}
-            
-            {field.required && (
-              <div className="flex items-center mt-2">
-                <span className="text-xs bg-red-100 text-red-800 px-2 py-0.5 rounded">
-                  Requerido
-                </span>
               </div>
             )}
             
@@ -268,39 +311,87 @@ const CustomFieldCard: React.FC<CustomFieldCardProps> = ({ field, onUpdate, onDe
             <div className="text-xs text-gray-400 mt-3">
               ID: {field.id} • Última actualización: {new Date(field.updatedAt).toLocaleString()}
             </div>
-          </>
-        )}
-      </CardContent>
-      
-      <CardFooter className="p-3 flex justify-end space-x-2 border-t border-gray-100">
-        {isEditing ? (
-          <>
-            <Button variant="outline" size="sm" onClick={handleCancel}>
-              <X className="h-4 w-4 mr-1" />
-              Cancelar
-            </Button>
-            <Button size="sm" onClick={handleSave} className="bg-blue-500 hover:bg-blue-600">
-              <Save className="h-4 w-4 mr-1" />
-              Guardar
-            </Button>
-          </>
-        ) : (
-          <>
-            {isEditable && (
+          </CardContent>
+          
+          <CardFooter className="p-3 flex justify-end space-x-2 border-t border-gray-100">
+            {isEditing ? (
               <>
-                <Button variant="outline" size="sm" onClick={handleDelete} className="text-red-500 hover:text-red-600">
-                  <Trash2 className="h-4 w-4" />
+                <Button variant="outline" size="sm" onClick={handleCancel}>
+                  <X className="h-4 w-4 mr-1" />
+                  Cancelar
                 </Button>
-                <Button variant="outline" size="sm" onClick={handleEdit}>
-                  <Edit className="h-4 w-4 mr-1" />
-                  Editar
+                <Button size="sm" onClick={handleSave} className="bg-blue-500 hover:bg-blue-600">
+                  <Save className="h-4 w-4 mr-1" />
+                  Guardar
                 </Button>
               </>
+            ) : (
+              <>
+                {isEditable && (
+                  <>
+                    <Button variant="outline" size="sm" onClick={handleDelete} className="text-red-500 hover:text-red-600">
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                    <Button variant="outline" size="sm" onClick={handleEdit}>
+                      <Edit className="h-4 w-4 mr-1" />
+                      Editar
+                    </Button>
+                  </>
+                )}
+              </>
             )}
-          </>
-        )}
-      </CardFooter>
-    </Card>
+          </CardFooter>
+        </CollapsibleContent>
+      </Collapsible>
+      
+      {/* Diálogo para editar valores */}
+      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Editar valor del campo</DialogTitle>
+            <DialogDescription>
+              {field.name} - {getTypeLabel(field.type)}
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="py-4">
+            {field.type === '5' || isLongText ? (
+              <Textarea
+                value={editedValue}
+                onChange={(e) => setEditedValue(e.target.value)}
+                rows={10}
+                className="w-full"
+                placeholder="Ingrese el valor del campo"
+              />
+            ) : valueIsObject ? (
+              <Textarea
+                value={editedValue}
+                onChange={(e) => setEditedValue(e.target.value)}
+                rows={10}
+                className="w-full font-mono text-sm"
+                placeholder="Formato JSON"
+              />
+            ) : (
+              <Input
+                value={editedValue}
+                onChange={(e) => setEditedValue(e.target.value)}
+                className="w-full"
+                placeholder="Ingrese el valor del campo"
+              />
+            )}
+          </div>
+          
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => setIsEditDialogOpen(false)}>
+              Cancelar
+            </Button>
+            <Button type="button" onClick={handleSaveValue}>
+              Guardar cambios
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 };
 
