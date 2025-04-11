@@ -1,4 +1,3 @@
-
 import { HttpError, HttpResponse, RequestOptions } from './types';
 
 const DEFAULT_TIMEOUT = 30000; // 30 segundos
@@ -114,8 +113,12 @@ export class HttpClient {
         config: mergedOptions,
       };
       
-      // Comprobar si la respuesta es un error
-      if (!response.ok) {
+      // Comprobar si la respuesta es un error basado en la configuración
+      const shouldEvaluateAsError = mergedOptions.evaluateAllStatesAsErrors 
+        ? response.status >= 400 
+        : !response.ok;
+        
+      if (shouldEvaluateAsError) {
         throw new HttpError(`Petición fallida con código ${response.status}`, {
           response: httpResponse,
           status: response.status,

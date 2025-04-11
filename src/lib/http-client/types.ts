@@ -6,6 +6,7 @@ export interface RequestOptions extends RequestInit {
   timeout?: number;
   retries?: number;
   baseURL?: string;
+  evaluateAllStatesAsErrors?: boolean;
 }
 
 // Tipos de respuesta

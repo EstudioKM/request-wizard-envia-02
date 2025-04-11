@@ -18,10 +18,11 @@ interface HeaderItem {
 type HttpMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
 
 const HttpTester = () => {
-  const [url, setUrl] = useState('');
+  const [url, setUrl] = useState('https://app.estudiokm.com.ar/api/accounts/custom_fields');
   const [method, setMethod] = useState<HttpMethod>('GET');
   const [headers, setHeaders] = useState<HeaderItem[]>([
-    { id: '1', name: 'accept', value: 'application/json' }
+    { id: '1', name: 'accept', value: 'application/json' },
+    { id: '2', name: 'X-ACCESS-TOKEN', value: '1330256.GzFpRpZKULHhFTun91Siftf93toXQImohKLCW75' }
   ]);
   const [body, setBody] = useState('');
   const [evaluateAllErrors, setEvaluateAllErrors] = useState(true);
@@ -73,7 +74,9 @@ const HttpTester = () => {
       });
 
       const options: RequestOptions = {
-        headers: headerObject
+        headers: headerObject,
+        // Add this to control error behavior based on the checkbox
+        evaluateAllStatesAsErrors: evaluateAllErrors
       };
 
       let result;
