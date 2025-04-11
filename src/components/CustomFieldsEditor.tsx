@@ -8,6 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { useToast } from '@/components/ui/use-toast';
 import { Progress } from '@/components/ui/progress';
+import { Skeleton } from '@/components/ui/skeleton';
 import { http } from '@/lib/http-client';
 import JsonViewer from '@/components/JsonViewer';
 import CustomFieldsGrid from './CustomFieldsGrid';
@@ -24,6 +25,7 @@ interface CustomField {
   createdAt: string;
   updatedAt: string;
   value?: any;
+  hasValue?: boolean;
 }
 
 const CustomFieldsEditor = () => {
@@ -31,11 +33,13 @@ const CustomFieldsEditor = () => {
   const [filteredFields, setFilteredFields] = useState<CustomField[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isLoadingValues, setIsLoadingValues] = useState(false);
+  const [isLoadingDescriptions, setIsLoadingDescriptions] = useState(false);
   const [loadingProgress, setLoadingProgress] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [editableResponse, setEditableResponse] = useState(false);
   const [viewMode, setViewMode] = useState<'json' | 'grid'>('grid');
   const [searchTerm, setSearchTerm] = useState('');
+  const [hideEmptyFields, setHideEmptyFields] = useState(true);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -43,21 +47,28 @@ const CustomFieldsEditor = () => {
   }, []);
 
   useEffect(() => {
-    if (searchTerm.trim() === '') {
-      setFilteredFields(customFields);
-    } else {
-      const filtered = customFields.filter(
+    // Filtrar por término de búsqueda y por campos vacíos si está habilitado
+    let filtered = customFields;
+    
+    if (searchTerm.trim() !== '') {
+      filtered = filtered.filter(
         field => field.name.toLowerCase().includes(searchTerm.toLowerCase())
       );
-      setFilteredFields(filtered);
     }
-  }, [searchTerm, customFields]);
+    
+    if (hideEmptyFields) {
+      filtered = filtered.filter(field => field.hasValue);
+    }
+    
+    setFilteredFields(filtered);
+  }, [searchTerm, customFields, hideEmptyFields]);
 
   const fetchCustomFields = async () => {
     setIsLoading(true);
     setError(null);
 
     try {
+      // Obtener la lista de campos personalizados
       const response = await http.get('https://app.estudiokm.com.ar/api/accounts/custom_fields', {
         headers: {
           'accept': 'application/json',
@@ -65,26 +76,33 @@ const CustomFieldsEditor = () => {
         }
       });
 
-      // Transformar la respuesta en el formato que esperamos
+      // Transformar la respuesta para incluir descripciones y otra información relevante
       const fields = response.data.map((field: any) => ({
         id: field.id,
-        accountId: 1, // Default value
+        accountId: field.account_id || 1,
         name: field.name,
-        type: field.type,
-        description: '',
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString()
+        type: field.type || '0',
+        description: field.description || '',
+        options: field.options,
+        required: field.required,
+        order: field.order,
+        createdAt: field.created_at || new Date().toISOString(),
+        updatedAt: field.updated_at || new Date().toISOString(),
+        hasValue: false  // Se actualizará cuando se carguen los valores
       }));
 
       setCustomFields(fields);
-      setFilteredFields(fields);
+      setFilteredFields(hideEmptyFields ? [] : fields);
+      
       toast({
         title: 'Campos cargados',
         description: `Se cargaron ${fields.length} campos personalizados`,
       });
 
       // Cargar automáticamente los valores de los campos
-      fetchAllFieldValues(fields);
+      if (fields.length > 0) {
+        await fetchAllFieldValues(fields);
+      }
     } catch (err: any) {
       console.error('Error al cargar campos personalizados:', err);
       setError(err.message || 'Error al cargar campos personalizados');
@@ -150,9 +168,14 @@ const CustomFieldsEditor = () => {
                 // Actualizar el campo con su valor
                 const fieldIndex = updatedFields.findIndex(f => f.id === field.id);
                 if (fieldIndex !== -1) {
+                  const hasValue = response.data.value !== null && 
+                                  response.data.value !== undefined && 
+                                  response.data.value !== "";
+                                  
                   updatedFields[fieldIndex] = {
                     ...updatedFields[fieldIndex],
-                    value: response.data.value
+                    value: response.data.value,
+                    hasValue: hasValue
                   };
                 }
               }
@@ -168,12 +191,20 @@ const CustomFieldsEditor = () => {
         
         // Actualizamos el estado con los valores cargados hasta el momento
         setCustomFields([...updatedFields]);
-        setFilteredFields([...updatedFields]);
+        
+        // Aplicamos el filtro si está habilitado
+        if (hideEmptyFields) {
+          setFilteredFields(updatedFields.filter(f => f.hasValue));
+        } else {
+          setFilteredFields([...updatedFields]);
+        }
       }
+      
+      const fieldsWithValues = updatedFields.filter(f => f.hasValue).length;
       
       toast({
         title: 'Valores cargados',
-        description: `Se cargaron los valores de ${completedCount} campos`,
+        description: `Se cargaron valores para ${fieldsWithValues} de ${fields.length} campos`,
       });
     } catch (err) {
       console.error('Error al cargar los valores de los campos:', err);
@@ -189,7 +220,13 @@ const CustomFieldsEditor = () => {
 
   const handleUpdateFields = (updatedData: any) => {
     setCustomFields(updatedData);
-    setFilteredFields(updatedData);
+    
+    if (hideEmptyFields) {
+      setFilteredFields(updatedData.filter((f: CustomField) => f.hasValue));
+    } else {
+      setFilteredFields(updatedData);
+    }
+    
     toast({
       title: 'Campos actualizados',
       description: 'Los campos han sido modificados localmente',
@@ -211,11 +248,16 @@ const CustomFieldsEditor = () => {
       name: 'Nuevo Campo',
       type: '0', // Tipo texto por defecto
       createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
+      updatedAt: new Date().toISOString(),
+      hasValue: false
     };
     
     setCustomFields([...customFields, newField]);
-    setFilteredFields([...filteredFields, newField]);
+    
+    if (!hideEmptyFields) {
+      setFilteredFields([...filteredFields, newField]);
+    }
+    
     toast({
       title: 'Campo añadido',
       description: 'Se añadió un nuevo campo personalizado',
@@ -276,9 +318,26 @@ const CustomFieldsEditor = () => {
             {error}
           </div>
         ) : isLoading ? (
-          <div className="text-center py-8">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto"></div>
-            <p className="mt-2 text-gray-500">Cargando campos personalizados...</p>
+          <div className="space-y-6">
+            <div className="flex justify-center py-8">
+              <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-500 mx-auto"></div>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {[1, 2, 3, 4, 5, 6].map(i => (
+                <Card key={i} className="border border-gray-200">
+                  <CardHeader className="p-4">
+                    <Skeleton className="h-5 w-3/4" />
+                  </CardHeader>
+                  <CardContent className="p-4">
+                    <div className="space-y-2">
+                      <Skeleton className="h-4 w-1/2" />
+                      <Skeleton className="h-4 w-3/4" />
+                      <Skeleton className="h-4 w-1/3" />
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
           </div>
         ) : (
           <div className="space-y-4">
@@ -304,6 +363,14 @@ const CustomFieldsEditor = () => {
                 />
               </div>
               <div className="flex items-center space-x-4">
+                <div className="flex items-center space-x-2">
+                  <Label htmlFor="hide-empty-toggle" className="text-sm">Ocultar vacíos</Label>
+                  <Switch 
+                    id="hide-empty-toggle" 
+                    checked={hideEmptyFields} 
+                    onCheckedChange={setHideEmptyFields}
+                  />
+                </div>
                 <div className="flex items-center space-x-2">
                   <Label htmlFor="editable-toggle" className="text-sm">Editar</Label>
                   <Switch 
@@ -336,6 +403,7 @@ const CustomFieldsEditor = () => {
             <Label className="text-sm font-medium block mt-4">
               {filteredFields.length} campos encontrados
               {searchTerm && ` para "${searchTerm}"`}
+              {hideEmptyFields && ` (ocultando campos vacíos)`}
             </Label>
             
             {viewMode === 'json' ? (

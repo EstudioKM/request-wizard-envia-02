@@ -1,11 +1,13 @@
 
 import React, { useState, useEffect } from 'react';
-import { Edit, Save, X, Trash2, Eye, EyeOff, Loader2 } from 'lucide-react';
+import { Edit, Save, X, Trash2, Eye, EyeOff, Loader2, FileText, Tag } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Textarea } from '@/components/ui/textarea';
+import { Skeleton } from '@/components/ui/skeleton';
 import { http } from '@/lib/http-client';
 import { useToast } from '@/components/ui/use-toast';
 
@@ -21,6 +23,7 @@ interface CustomField {
   createdAt: string;
   updatedAt: string;
   value?: any;
+  hasValue?: boolean;
 }
 
 interface CustomFieldCardProps {
@@ -33,7 +36,7 @@ interface CustomFieldCardProps {
 const CustomFieldCard: React.FC<CustomFieldCardProps> = ({ field, onUpdate, onDelete, isEditable }) => {
   const [isEditing, setIsEditing] = useState(false);
   const [editedField, setEditedField] = useState<CustomField>(field);
-  const [isShowingValue, setIsShowingValue] = useState(!!field.value);
+  const [isShowingValue, setIsShowingValue] = useState(true);
   const [isLoadingValue, setIsLoadingValue] = useState(false);
   const [valueError, setValueError] = useState<string | null>(null);
   const { toast } = useToast();
@@ -42,9 +45,7 @@ const CustomFieldCard: React.FC<CustomFieldCardProps> = ({ field, onUpdate, onDe
     // Actualizar el campo editado cuando cambia el campo original
     setEditedField(field);
     // Mostrar el valor automáticamente si existe
-    if (field.value) {
-      setIsShowingValue(true);
-    }
+    setIsShowingValue(true);
   }, [field]);
   
   const handleEdit = () => {
@@ -108,61 +109,40 @@ const CustomFieldCard: React.FC<CustomFieldCardProps> = ({ field, onUpdate, onDe
     }
   };
   
-  const toggleShowValue = async () => {
-    if (isShowingValue) {
-      setIsShowingValue(false);
-      return;
-    }
-    
-    // Si ya tenemos el valor, solo mostrarlo
-    if (field.value !== undefined) {
-      setIsShowingValue(true);
-      return;
-    }
-    
-    // Si no tenemos el valor, cargarlo
-    setIsShowingValue(true);
-    setIsLoadingValue(true);
-    setValueError(null);
-    
-    try {
-      const response = await http.get(`https://app.estudiokm.com.ar/api/accounts/bot_fields/${field.id}`, {
-        headers: {
-          'accept': 'application/json',
-          'X-ACCESS-TOKEN': '1330256.GzFpRpZKULHhFTun91Siftf93toXQImohKLCW75'
-        }
-      });
-      
-      // Actualizar el campo con el valor recibido
-      const updatedField = {
-        ...field,
-        value: response.data.value
-      };
-      
-      onUpdate(updatedField);
-      
-      toast({
-        title: 'Valor cargado',
-        description: 'Se ha obtenido el valor del campo con éxito',
-      });
-    } catch (err: any) {
-      console.error('Error al cargar el valor del campo:', err);
-      setValueError(err.message || 'Error al cargar el valor del campo');
-      toast({
-        variant: 'destructive',
-        title: 'Error',
-        description: err.message || 'Error al cargar el valor del campo',
-      });
-    } finally {
-      setIsLoadingValue(false);
-    }
+  const toggleShowValue = () => {
+    setIsShowingValue(prev => !prev);
   };
 
   // Determinar si es un texto largo para mostrar con formato adecuado
-  const isLongText = field.type === '5';
+  const isLongText = field.type === '5' || (typeof field.value === 'string' && field.value.length > 100);
+  const valueIsObject = typeof field.value === 'object' && field.value !== null;
+  
+  // Truncar textos largos
+  const truncateText = (text: string, maxLength = 150) => {
+    if (text.length <= maxLength) return text;
+    return text.substring(0, maxLength) + '...';
+  };
+
+  // Formato para mostrar el valor según su tipo
+  const formatValue = (value: any, isLong = false) => {
+    if (value === undefined || value === null) return '';
+    
+    if (valueIsObject) {
+      return <pre className="text-xs overflow-auto max-h-40 bg-gray-50 p-2 rounded">{JSON.stringify(value, null, 2)}</pre>;
+    }
+    
+    if (typeof value === 'string') {
+      if (isLong) {
+        return <div className="whitespace-pre-wrap break-words">{value}</div>;
+      }
+      return isShowingValue ? value : truncateText(value);
+    }
+    
+    return String(value);
+  };
   
   return (
-    <Card className="border border-gray-100 shadow-sm hover:shadow transition-all duration-200">
+    <Card className={`border shadow-sm hover:shadow transition-all duration-200 ${field.hasValue ? 'border-gray-200' : 'border-gray-100 opacity-70'}`}>
       <CardHeader className="p-4 pb-3 border-b border-gray-100">
         {isEditing ? (
           <div className="space-y-2">
@@ -175,7 +155,12 @@ const CustomFieldCard: React.FC<CustomFieldCardProps> = ({ field, onUpdate, onDe
             />
           </div>
         ) : (
-          <CardTitle className="text-lg font-medium">{field.name}</CardTitle>
+          <div className="flex justify-between items-start">
+            <CardTitle className="text-lg font-medium">{field.name}</CardTitle>
+            <span className={`text-xs px-2 py-1 rounded-full ${getTypeColor(field.type)}`}>
+              {getTypeLabel(field.type)}
+            </span>
+          </div>
         )}
       </CardHeader>
       
@@ -226,16 +211,10 @@ const CustomFieldCard: React.FC<CustomFieldCardProps> = ({ field, onUpdate, onDe
           </>
         ) : (
           <>
-            <div className="flex items-center justify-between">
-              <span className="text-sm text-gray-500">Tipo:</span>
-              <span className={`text-xs px-2 py-1 rounded-full ${getTypeColor(field.type)}`}>
-                {getTypeLabel(field.type)}
-              </span>
-            </div>
-            
             {field.description && (
-              <div className="text-sm text-gray-600 mt-2">
-                {field.description}
+              <div className="flex items-start space-x-2 text-sm text-gray-600 mt-2">
+                <FileText className="h-4 w-4 text-gray-400 mt-0.5 flex-shrink-0" />
+                <div>{field.description}</div>
               </div>
             )}
             
@@ -247,9 +226,24 @@ const CustomFieldCard: React.FC<CustomFieldCardProps> = ({ field, onUpdate, onDe
               </div>
             )}
             
-            {isShowingValue && (
+            {field.hasValue && field.value !== undefined && field.value !== null && (
               <div className="mt-3 p-3 bg-gray-50 rounded-md border border-gray-200">
-                <h4 className="text-sm font-medium mb-2 text-gray-700">Valor:</h4>
+                <div className="flex justify-between items-center mb-2">
+                  <h4 className="text-sm font-medium text-gray-700 flex items-center">
+                    <Tag className="h-3.5 w-3.5 mr-1.5 text-gray-500" />
+                    Valor:
+                  </h4>
+                  {(isLongText || valueIsObject) && (
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      onClick={toggleShowValue} 
+                      className="h-6 text-xs p-0 px-2"
+                    >
+                      {isShowingValue ? 'Contraer' : 'Expandir'}
+                    </Button>
+                  )}
+                </div>
                 {isLoadingValue ? (
                   <div className="flex items-center justify-center py-2">
                     <Loader2 className="h-5 w-5 animate-spin text-gray-500" />
@@ -259,9 +253,13 @@ const CustomFieldCard: React.FC<CustomFieldCardProps> = ({ field, onUpdate, onDe
                   <div className="text-sm text-red-500">{valueError}</div>
                 ) : (
                   <div className={`text-sm ${isLongText ? 'whitespace-pre-wrap' : ''}`}>
-                    {typeof field.value === 'object' 
-                      ? JSON.stringify(field.value, null, 2) 
-                      : String(field.value || '')}
+                    {isLongText ? (
+                      <div className={`${isShowingValue ? 'max-h-60 overflow-y-auto' : 'max-h-10 overflow-hidden'}`}>
+                        {formatValue(field.value, isShowingValue)}
+                      </div>
+                    ) : (
+                      formatValue(field.value)
+                    )}
                   </div>
                 )}
               </div>
@@ -288,22 +286,6 @@ const CustomFieldCard: React.FC<CustomFieldCardProps> = ({ field, onUpdate, onDe
           </>
         ) : (
           <>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={toggleShowValue}
-              className={isShowingValue ? "text-amber-500 hover:text-amber-600" : ""}
-            >
-              {isLoadingValue ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : isShowingValue ? (
-                <EyeOff className="h-4 w-4 mr-1" />
-              ) : (
-                <Eye className="h-4 w-4 mr-1" />
-              )}
-              {isShowingValue ? "Ocultar valor" : "Ver valor"}
-            </Button>
-            
             {isEditable && (
               <>
                 <Button variant="outline" size="sm" onClick={handleDelete} className="text-red-500 hover:text-red-600">
