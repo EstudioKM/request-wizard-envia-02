@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { PlusCircle, Save, List, Grid } from 'lucide-react';
+import { PlusCircle, Save, List, Grid, Search, RefreshCcw } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -26,15 +26,28 @@ interface CustomField {
 
 const CustomFieldsEditor = () => {
   const [customFields, setCustomFields] = useState<CustomField[]>([]);
+  const [filteredFields, setFilteredFields] = useState<CustomField[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [editableResponse, setEditableResponse] = useState(false);
   const [viewMode, setViewMode] = useState<'json' | 'grid'>('grid');
+  const [searchTerm, setSearchTerm] = useState('');
   const { toast } = useToast();
 
   useEffect(() => {
     fetchCustomFields();
   }, []);
+
+  useEffect(() => {
+    if (searchTerm.trim() === '') {
+      setFilteredFields(customFields);
+    } else {
+      const filtered = customFields.filter(
+        field => field.name.toLowerCase().includes(searchTerm.toLowerCase())
+      );
+      setFilteredFields(filtered);
+    }
+  }, [searchTerm, customFields]);
 
   const fetchCustomFields = async () => {
     setIsLoading(true);
@@ -48,10 +61,22 @@ const CustomFieldsEditor = () => {
         }
       });
 
-      setCustomFields(response.data);
+      // Transformar la respuesta en el formato que esperamos
+      const fields = response.data.map((field: any) => ({
+        id: field.id,
+        accountId: 1, // Default value
+        name: field.name,
+        type: field.type,
+        description: '',
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      }));
+
+      setCustomFields(fields);
+      setFilteredFields(fields);
       toast({
         title: 'Campos cargados',
-        description: `Se cargaron ${response.data.length} campos personalizados`,
+        description: `Se cargaron ${fields.length} campos personalizados`,
       });
     } catch (err: any) {
       console.error('Error al cargar campos personalizados:', err);
@@ -68,6 +93,7 @@ const CustomFieldsEditor = () => {
 
   const handleUpdateFields = (updatedData: any) => {
     setCustomFields(updatedData);
+    setFilteredFields(updatedData);
     toast({
       title: 'Campos actualizados',
       description: 'Los campos han sido modificados localmente',
@@ -87,12 +113,13 @@ const CustomFieldsEditor = () => {
       id: Date.now(), // Temporal ID
       accountId: customFields.length > 0 ? customFields[0].accountId : 1,
       name: 'Nuevo Campo',
-      type: 'text',
+      type: '0', // Tipo texto por defecto
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString()
     };
     
     setCustomFields([...customFields, newField]);
+    setFilteredFields([...filteredFields, newField]);
     toast({
       title: 'Campo añadido',
       description: 'Se añadió un nuevo campo personalizado',
@@ -122,7 +149,17 @@ const CustomFieldsEditor = () => {
               onClick={fetchCustomFields}
               disabled={isLoading}
             >
-              {isLoading ? 'Cargando...' : 'Actualizar'}
+              {isLoading ? (
+                <>
+                  <RefreshCcw className="h-4 w-4 mr-1 animate-spin" />
+                  Cargando...
+                </>
+              ) : (
+                <>
+                  <RefreshCcw className="h-4 w-4 mr-1" />
+                  Actualizar
+                </>
+              )}
             </Button>
             <Button 
               variant="default" 
@@ -149,10 +186,17 @@ const CustomFieldsEditor = () => {
           </div>
         ) : (
           <div className="space-y-4">
-            <div className="flex justify-between items-center">
-              <Label className="text-sm font-medium">
-                {customFields.length} campos encontrados
-              </Label>
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center space-y-2 md:space-y-0">
+              <div className="relative w-full md:w-80">
+                <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                <Input
+                  type="text"
+                  placeholder="Buscar campos..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-8 w-full"
+                />
+              </div>
               <div className="flex items-center space-x-4">
                 <div className="flex items-center space-x-2">
                   <Label htmlFor="editable-toggle" className="text-sm">Editar</Label>
@@ -183,15 +227,20 @@ const CustomFieldsEditor = () => {
               </div>
             </div>
             
+            <Label className="text-sm font-medium block mt-4">
+              {filteredFields.length} campos encontrados
+              {searchTerm && ` para "${searchTerm}"`}
+            </Label>
+            
             {viewMode === 'json' ? (
               <JsonViewer 
-                data={customFields} 
+                data={filteredFields} 
                 onUpdate={editableResponse ? handleUpdateFields : undefined} 
                 isEditable={editableResponse}
               />
             ) : (
               <CustomFieldsGrid
-                fields={customFields}
+                fields={filteredFields}
                 onUpdate={handleUpdateFields}
                 isEditable={editableResponse}
                 onAddField={addNewField}
