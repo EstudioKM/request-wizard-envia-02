@@ -1,6 +1,5 @@
-
 import { useState } from 'react';
-import { PlusCircle, Trash2, Menu, X, Check } from 'lucide-react';
+import { PlusCircle, Menu, X } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -34,6 +33,7 @@ const HttpTester = () => {
   const [timeout, setTimeout] = useState(30000);
   const [showAdvancedOptions, setShowAdvancedOptions] = useState(false);
   const [errorDetails, setErrorDetails] = useState<string | null>(null);
+  const [useProxy, setUseProxy] = useState(true);
 
   const addHeader = () => {
     const newId = (headers.length + 1).toString();
@@ -71,6 +71,8 @@ const HttpTester = () => {
     setResponse(null);
     setErrorDetails(null);
 
+    http.setProxyEnabled(useProxy);
+
     try {
       const headerObject: Record<string, string> = {};
       headers.forEach(header => {
@@ -78,11 +80,6 @@ const HttpTester = () => {
           headerObject[header.name] = header.value;
         }
       });
-
-      // Probar con URL de API pública para verificar si es un problema específico de la URL
-      const testUrl = url === 'https://app.estudiokm.com.ar/api/accounts/custom_fields' 
-        ? 'https://jsonplaceholder.typicode.com/posts/1' 
-        : url;
 
       const options: RequestOptions = {
         headers: headerObject,
@@ -140,12 +137,11 @@ const HttpTester = () => {
         description: error.message || 'Error desconocido',
       });
       
-      // Sugerir soluciones
       if (error.message?.includes('CORS') || error.message?.includes('cross-origin')) {
         toast({
           variant: 'destructive',
           title: 'Error CORS detectado',
-          description: 'Prueba con una API que permita solicitudes CORS, como jsonplaceholder.typicode.com',
+          description: 'Intenta habilitar el proxy para evitar problemas de CORS',
         });
       } else if (error.message?.includes('Failed to fetch') || error.status === 0) {
         toast({
@@ -164,6 +160,16 @@ const HttpTester = () => {
     setMethod('GET');
     setHeaders([
       { id: '1', name: 'accept', value: 'application/json' }
+    ]);
+    setBody('');
+  };
+
+  const testEstudioKM = () => {
+    setUrl('https://app.estudiokm.com.ar/api/accounts/custom_fields');
+    setMethod('GET');
+    setHeaders([
+      { id: '1', name: 'accept', value: 'application/json' },
+      { id: '2', name: 'X-ACCESS-TOKEN', value: '1330256.GzFpRpZKULHhFTun91Siftf93toXQImohKLCW75' }
     ]);
     setBody('');
   };
@@ -206,11 +212,29 @@ const HttpTester = () => {
             <label htmlFor="evaluateAllErrors">Evaluate all states as errors (except for 2xx and 3xx)</label>
           </div>
 
-          <Alert variant="destructive" className="bg-amber-50 border-amber-200 text-amber-800">
-            <AlertTitle className="font-medium">Problemas con CORS</AlertTitle>
+          <div className="flex items-center gap-2 text-gray-800">
+            <input 
+              type="checkbox"
+              id="useProxy" 
+              checked={useProxy}
+              onChange={() => setUseProxy(!useProxy)}
+              className="h-4 w-4"
+            />
+            <label htmlFor="useProxy">Usar proxy para evitar problemas de CORS</label>
+          </div>
+
+          <Alert variant="default" className="bg-blue-50 border-blue-200 text-blue-800">
+            <AlertTitle className="font-medium">Proxy configurado</AlertTitle>
             <AlertDescription>
-              Es posible que experimentes problemas de CORS al realizar peticiones a APIs externas desde el cliente. 
-              Prueba con <Button onClick={testJsonPlaceholder} variant="link" className="p-0 h-auto text-blue-600">jsonplaceholder.typicode.com</Button>
+              Se ha configurado un proxy para evitar problemas de CORS con app.estudiokm.com.ar.
+              <div className="flex mt-2 space-x-2">
+                <Button onClick={testEstudioKM} variant="outline" size="sm" className="bg-white">
+                  Probar con EstudioKM
+                </Button>
+                <Button onClick={testJsonPlaceholder} variant="outline" size="sm" className="bg-white">
+                  Probar con JSONPlaceholder
+                </Button>
+              </div>
             </AlertDescription>
           </Alert>
 

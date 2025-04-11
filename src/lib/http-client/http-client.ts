@@ -2,7 +2,7 @@
 import { HttpError, HttpResponse, RequestOptions } from './types';
 
 const DEFAULT_TIMEOUT = 30000; // 30 segundos
-const DEFAULT_RETRIES = 0;
+const DEFAULT_RETRIES = 2;
 
 /**
  * Cliente HTTP para realizar peticiones con funcionalidades avanzadas
@@ -10,10 +10,12 @@ const DEFAULT_RETRIES = 0;
 export class HttpClient {
   private baseURL: string;
   private defaultOptions: RequestOptions;
+  private proxyEnabled: boolean;
 
-  constructor(baseURL: string = '', defaultOptions: RequestOptions = {}) {
+  constructor(baseURL: string = '', defaultOptions: RequestOptions = {}, proxyEnabled: boolean = true) {
     this.baseURL = baseURL;
     this.defaultOptions = defaultOptions;
+    this.proxyEnabled = proxyEnabled;
   }
 
   /**
@@ -21,7 +23,12 @@ export class HttpClient {
    */
   async request<T = any>(url: string, options: RequestOptions = {}): Promise<HttpResponse<T>> {
     const mergedOptions = this.mergeOptions(options);
-    const fullURL = this.buildURL(url, mergedOptions.params);
+    let fullURL = this.buildURL(url, mergedOptions.params);
+    
+    // Aplicar proxy si está habilitado y la URL contiene estudiokm.com.ar
+    if (this.proxyEnabled && fullURL.includes('estudiokm.com.ar')) {
+      fullURL = this.applyProxy(fullURL);
+    }
     
     const controller = new AbortController();
     const { signal } = controller;
@@ -34,6 +41,7 @@ export class HttpClient {
       ...mergedOptions,
       signal,
       mode: 'cors',
+      credentials: mergedOptions.credentials || 'omit',
     };
     
     // Si hay un body y es un objeto, convertirlo a JSON
@@ -240,6 +248,33 @@ export class HttpClient {
     }
     
     return fullURL;
+  }
+
+  /**
+   * Aplicar proxy a la URL
+   */
+  private applyProxy(url: string): string {
+    // Si la URL ya es del proxy, devolverla sin cambios
+    if (url.includes('/api-proxy')) {
+      return url;
+    }
+
+    // Convertir https://app.estudiokm.com.ar/api/... a /api-proxy/api/...
+    try {
+      const urlObj = new URL(url);
+      const pathWithQuery = urlObj.pathname + urlObj.search;
+      return `/api-proxy${pathWithQuery}`;
+    } catch (e) {
+      console.error('Error al parsear URL para proxy:', e);
+      return url;
+    }
+  }
+
+  /**
+   * Habilitar o deshabilitar el proxy
+   */
+  setProxyEnabled(enabled: boolean): void {
+    this.proxyEnabled = enabled;
   }
 }
 
