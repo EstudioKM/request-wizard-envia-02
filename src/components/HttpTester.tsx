@@ -172,7 +172,7 @@ const HttpTester = () => {
               <label className="text-sm font-medium">Method <span className="text-red-500">*</span></label>
               <div className="ml-auto flex items-center gap-2">
                 <span className="text-xs">Map</span>
-                <Switch size="sm" />
+                <Switch />
               </div>
             </div>
             <Select value={method} onValueChange={(val) => setMethod(val as HttpMethod)}>
@@ -195,7 +195,7 @@ const HttpTester = () => {
               <label className="text-sm font-medium">Headers</label>
               <div className="ml-auto flex items-center gap-2">
                 <span className="text-xs">Map</span>
-                <Switch size="sm" />
+                <Switch />
               </div>
             </div>
 
