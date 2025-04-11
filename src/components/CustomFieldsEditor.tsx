@@ -122,23 +122,42 @@ const CustomFieldsEditor = () => {
         await Promise.all(
           chunk.map(async (field, index) => {
             try {
-              const response = await http.get(`https://app.estudiokm.com.ar/api/accounts/bot_fields/${field.id}`, {
-                headers: {
-                  'accept': 'application/json',
-                  'X-ACCESS-TOKEN': '1330256.GzFpRpZKULHhFTun91Siftf93toXQImohKLCW75'
-                }
-              });
+              // Intentar con el primer endpoint
+              let response;
+              let success = false;
               
-              // Actualizar el campo con su valor
-              const fieldIndex = updatedFields.findIndex(f => f.id === field.id);
-              if (fieldIndex !== -1) {
-                updatedFields[fieldIndex] = {
-                  ...updatedFields[fieldIndex],
-                  value: response.data.value
-                };
+              try {
+                response = await http.get(`https://app.estudiokm.com.ar/api/accounts/bot_fields/${field.id}`, {
+                  headers: {
+                    'accept': 'application/json',
+                    'X-ACCESS-TOKEN': '1330256.GzFpRpZKULHhFTun91Siftf93toXQImohKLCW75'
+                  }
+                });
+                success = true;
+              } catch (err) {
+                console.log(`Primer endpoint falló para campo ${field.id}, intentando con el segundo endpoint...`);
+                // Si falla, intentar con el segundo endpoint
+                response = await http.get(`https://app.estudiokm.com.ar/api/accounts/custom_fields/name/${field.id}`, {
+                  headers: {
+                    'accept': 'application/json',
+                    'X-ACCESS-TOKEN': '1330256.GzFpRpZKULHhFTun91Siftf93toXQImohKLCW75'
+                  }
+                });
+                success = true;
+              }
+              
+              if (success) {
+                // Actualizar el campo con su valor
+                const fieldIndex = updatedFields.findIndex(f => f.id === field.id);
+                if (fieldIndex !== -1) {
+                  updatedFields[fieldIndex] = {
+                    ...updatedFields[fieldIndex],
+                    value: response.data.value
+                  };
+                }
               }
             } catch (error) {
-              console.error(`Error al cargar el valor para el campo ${field.id}:`, error);
+              console.error(`Error al cargar el valor para el campo ${field.id} con ambos endpoints:`, error);
               // No detenemos el proceso si un campo falla
             } finally {
               completedCount++;
