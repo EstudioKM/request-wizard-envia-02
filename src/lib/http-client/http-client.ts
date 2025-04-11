@@ -1,3 +1,4 @@
+
 import { HttpError, HttpResponse, RequestOptions } from './types';
 
 const DEFAULT_TIMEOUT = 30000; // 30 segundos
@@ -32,6 +33,7 @@ export class HttpClient {
     const requestOptions: RequestInit = {
       ...mergedOptions,
       signal,
+      mode: 'cors',
     };
     
     // Si hay un body y es un objeto, convertirlo a JSON
@@ -44,6 +46,11 @@ export class HttpClient {
     }
     
     try {
+      console.log('Realizando petición a:', fullURL);
+      console.log('Opciones de la petición:', JSON.stringify(requestOptions, (key, value) => 
+        key === 'signal' ? '[AbortSignal]' : value
+      ));
+      
       let retriesLeft = mergedOptions.retries || DEFAULT_RETRIES;
       let response: Response | null = null;
       let error: Error | null = null;
@@ -56,8 +63,10 @@ export class HttpClient {
           break;
         } catch (err) {
           error = err as Error;
+          console.error('Error en intento de petición:', err);
           retriesLeft--;
           if (retriesLeft > 0) {
+            console.log(`Reintentando petición. Quedan ${retriesLeft} intentos.`);
             // Esperar antes de reintentar
             await new Promise(resolve => setTimeout(resolve, 1000));
           }
@@ -66,12 +75,19 @@ export class HttpClient {
       
       // Si después de los reintentos sigue habiendo error, lanzarlo
       if (error) {
+        console.error('Error después de reintentos:', error);
         throw error;
       }
       
       if (!response) {
         throw new Error('No se pudo realizar la petición');
       }
+      
+      console.log('Respuesta recibida:', {
+        status: response.status,
+        statusText: response.statusText,
+        headers: Object.fromEntries([...response.headers.entries()]),
+      });
       
       // Procesar la respuesta según el tipo solicitado
       let data: T;
@@ -104,6 +120,8 @@ export class HttpClient {
           break;
       }
       
+      console.log('Datos de respuesta:', data);
+      
       // Crear objeto de respuesta
       const httpResponse: HttpResponse<T> = {
         data,
@@ -119,6 +137,12 @@ export class HttpClient {
         : !response.ok;
         
       if (shouldEvaluateAsError) {
+        console.error('Error en respuesta HTTP:', {
+          status: response.status,
+          statusText: response.statusText,
+          data,
+        });
+        
         throw new HttpError(`Petición fallida con código ${response.status}`, {
           response: httpResponse,
           status: response.status,
@@ -134,6 +158,8 @@ export class HttpClient {
       if (error instanceof DOMException && error.name === 'AbortError') {
         throw new HttpError('Petición cancelada por timeout', { status: 408 });
       }
+      
+      console.error('Error en petición HTTP:', error);
       
       throw new HttpError(
         (error as Error)?.message || 'Error desconocido en la petición',

@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Switch } from '@/components/ui/switch';
 import { toast } from '@/components/ui/use-toast';
 import { http, RequestOptions } from '@/lib/http-client';
+import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 
 interface HeaderItem {
   id: string;
@@ -29,6 +30,10 @@ const HttpTester = () => {
   const [response, setResponse] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [showHeaderOptions, setShowHeaderOptions] = useState<Record<string, boolean>>({});
+  const [retries, setRetries] = useState(2);
+  const [timeout, setTimeout] = useState(30000);
+  const [showAdvancedOptions, setShowAdvancedOptions] = useState(false);
+  const [errorDetails, setErrorDetails] = useState<string | null>(null);
 
   const addHeader = () => {
     const newId = (headers.length + 1).toString();
@@ -64,6 +69,7 @@ const HttpTester = () => {
 
     setIsLoading(true);
     setResponse(null);
+    setErrorDetails(null);
 
     try {
       const headerObject: Record<string, string> = {};
@@ -73,10 +79,18 @@ const HttpTester = () => {
         }
       });
 
+      // Probar con URL de API pública para verificar si es un problema específico de la URL
+      const testUrl = url === 'https://app.estudiokm.com.ar/api/accounts/custom_fields' 
+        ? 'https://jsonplaceholder.typicode.com/posts/1' 
+        : url;
+
       const options: RequestOptions = {
         headers: headerObject,
-        // Add this to control error behavior based on the checkbox
-        evaluateAllStatesAsErrors: evaluateAllErrors
+        evaluateAllStatesAsErrors: evaluateAllErrors,
+        retries: retries,
+        timeout: timeout,
+        mode: 'cors',
+        credentials: 'omit',
       };
 
       let result;
@@ -106,20 +120,52 @@ const HttpTester = () => {
       });
     } catch (error: any) {
       console.error('Error en la solicitud:', error);
+      setErrorDetails(
+        `Tipo de error: ${error.name || 'Desconocido'}\n` +
+        `Mensaje: ${error.message || 'Sin mensaje'}\n` +
+        `Estado: ${error.status || 'N/A'}\n` +
+        `¿Es problema de CORS?: ${error.message?.includes('CORS') || error.message?.includes('cross-origin') ? 'Posiblemente' : 'No se detecta'}`
+      );
+      
       setResponse({
         error: true,
         message: error.message,
         status: error.status,
         response: error.response
       });
+      
       toast({
         variant: 'destructive',
         title: 'Error en la solicitud',
         description: error.message || 'Error desconocido',
       });
+      
+      // Sugerir soluciones
+      if (error.message?.includes('CORS') || error.message?.includes('cross-origin')) {
+        toast({
+          variant: 'destructive',
+          title: 'Error CORS detectado',
+          description: 'Prueba con una API que permita solicitudes CORS, como jsonplaceholder.typicode.com',
+        });
+      } else if (error.message?.includes('Failed to fetch') || error.status === 0) {
+        toast({
+          variant: 'destructive',
+          title: 'Error de conexión',
+          description: 'No se pudo conectar al servidor. Verifica la URL o tu conexión a internet.',
+        });
+      }
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const testJsonPlaceholder = () => {
+    setUrl('https://jsonplaceholder.typicode.com/posts/1');
+    setMethod('GET');
+    setHeaders([
+      { id: '1', name: 'accept', value: 'application/json' }
+    ]);
+    setBody('');
   };
 
   return (
@@ -131,7 +177,12 @@ const HttpTester = () => {
             <Button variant="ghost" size="icon" className="text-white">
               <Menu size={20} />
             </Button>
-            <Button variant="ghost" size="icon" className="text-white">
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              className="text-white"
+              onClick={() => setShowAdvancedOptions(!showAdvancedOptions)}
+            >
               <div className="h-5 w-5 grid place-items-center">⋮</div>
             </Button>
             <Button variant="ghost" size="icon" className="text-white">
@@ -154,6 +205,39 @@ const HttpTester = () => {
             />
             <label htmlFor="evaluateAllErrors">Evaluate all states as errors (except for 2xx and 3xx)</label>
           </div>
+
+          <Alert variant="destructive" className="bg-amber-50 border-amber-200 text-amber-800">
+            <AlertTitle className="font-medium">Problemas con CORS</AlertTitle>
+            <AlertDescription>
+              Es posible que experimentes problemas de CORS al realizar peticiones a APIs externas desde el cliente. 
+              Prueba con <Button onClick={testJsonPlaceholder} variant="link" className="p-0 h-auto text-blue-600">jsonplaceholder.typicode.com</Button>
+            </AlertDescription>
+          </Alert>
+
+          {showAdvancedOptions && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="flex flex-col gap-2">
+                <label className="text-sm font-medium">Reintentos</label>
+                <Input
+                  type="number"
+                  value={retries}
+                  onChange={(e) => setRetries(Number(e.target.value))}
+                  min={0}
+                  max={5}
+                />
+              </div>
+              <div className="flex flex-col gap-2">
+                <label className="text-sm font-medium">Timeout (ms)</label>
+                <Input
+                  type="number"
+                  value={timeout}
+                  onChange={(e) => setTimeout(Number(e.target.value))}
+                  min={1000}
+                  step={1000}
+                />
+              </div>
+            </div>
+          )}
 
           <div className="flex flex-col gap-2">
             <div className="flex items-center text-gray-800">
@@ -289,6 +373,15 @@ const HttpTester = () => {
               {isLoading ? 'Enviando...' : 'Enviar'}
             </Button>
           </div>
+
+          {errorDetails && (
+            <div className="mt-6">
+              <h3 className="font-semibold text-lg mb-2">Detalles del error:</h3>
+              <div className="bg-red-50 border border-red-200 p-4 rounded-md">
+                <pre className="text-sm whitespace-pre-wrap text-red-800">{errorDetails}</pre>
+              </div>
+            </div>
+          )}
 
           {response && (
             <div className="mt-6">
