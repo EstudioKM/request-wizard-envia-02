@@ -122,7 +122,7 @@ const CustomFieldsEditor = () => {
           
           if (apiError.status === 429) {
             toast({
-              variant: 'warning',
+              variant: 'destructive',
               title: 'Límite de solicitudes excedido',
               description: 'Esperando un momento antes de reintentar...',
             });
