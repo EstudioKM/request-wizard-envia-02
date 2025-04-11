@@ -96,6 +96,10 @@ const CustomFieldCard: React.FC<CustomFieldCardProps> = ({ field, onUpdate, onDe
     setIsEditDialogOpen(true);
   };
   
+  const handleCardClick = () => {
+    setIsExpanded(!isExpanded);
+  };
+  
   const handleSaveValue = () => {
     let parsedValue = editedValue;
     
@@ -205,14 +209,30 @@ const CustomFieldCard: React.FC<CustomFieldCardProps> = ({ field, onUpdate, onDe
     return String(field.value);
   };
   
+  // Determinar un icono adecuado basado en el tipo de campo
+  const getFieldIcon = () => {
+    switch (field.type) {
+      case '0': return <FileText className="h-4 w-4 text-blue-600" />;
+      case '1': return <span className="text-green-600 font-medium">#</span>;
+      case '2': return <span className="text-purple-600">📅</span>;
+      case '3': return <span className="text-amber-600">✓</span>;
+      case '4': return <span className="text-indigo-600">☑</span>;
+      case '5': return <span className="text-pink-600">📝</span>;
+      default: return <Tag className="h-4 w-4 text-gray-600" />;
+    }
+  };
+  
   return (
     <>
       <Collapsible 
         open={isExpanded} 
         onOpenChange={setIsExpanded}
-        className="border rounded-lg shadow-sm hover:shadow bg-white transition-all duration-200 mb-4"
+        className="border rounded-lg shadow-sm hover:shadow transition-all duration-200 mb-4 bg-white overflow-hidden"
       >
-        <div className="flex items-center justify-between p-4 border-b border-gray-100">
+        <div 
+          className="flex items-center justify-between p-4 border-b border-gray-100 cursor-pointer hover:bg-gray-50"
+          onClick={handleCardClick}
+        >
           <div className="flex items-center gap-2">
             <CollapsibleTrigger asChild>
               <Button variant="ghost" size="sm" className="p-0 h-7 w-7">
@@ -223,7 +243,9 @@ const CustomFieldCard: React.FC<CustomFieldCardProps> = ({ field, onUpdate, onDe
               </Button>
             </CollapsibleTrigger>
             <div>
-              <CardTitle className="text-lg font-medium">{field.name}</CardTitle>
+              <CardTitle className="text-lg font-medium flex items-center gap-2">
+                {getFieldIcon()} {field.name}
+              </CardTitle>
               <div className="flex items-center gap-2 mt-1">
                 <span className={`text-xs px-2 py-0.5 rounded-full ${getTypeColor(field.type)}`}>
                   {getTypeLabel(field.type)}
@@ -242,7 +264,10 @@ const CustomFieldCard: React.FC<CustomFieldCardProps> = ({ field, onUpdate, onDe
               <Button 
                 variant="ghost" 
                 size="sm" 
-                onClick={handleOpenEditDialog}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleOpenEditDialog();
+                }}
                 className="h-8 text-blue-600 hover:text-blue-800 hover:bg-blue-50"
               >
                 <PenSquare className="h-4 w-4 mr-1" />
@@ -253,7 +278,7 @@ const CustomFieldCard: React.FC<CustomFieldCardProps> = ({ field, onUpdate, onDe
         </div>
         
         {!isExpanded && field.hasValue && (
-          <div className="px-4 py-2 text-sm text-gray-600 flex items-center gap-2">
+          <div className="px-4 py-2 text-sm text-gray-600 flex items-center gap-2 border-t border-gray-100 bg-gray-50">
             <Tag className="h-3.5 w-3.5 text-gray-500" />
             <span className="font-medium">Valor:</span>
             <span className="text-gray-700">{getValuePreview()}</span>
@@ -263,7 +288,7 @@ const CustomFieldCard: React.FC<CustomFieldCardProps> = ({ field, onUpdate, onDe
         <CollapsibleContent>
           <CardContent className="p-4 space-y-3">
             {field.description && (
-              <div className="flex items-start space-x-2 text-sm text-gray-600 mt-2">
+              <div className="flex items-start space-x-2 text-sm text-gray-600 mt-2 p-3 bg-gray-50 rounded-md">
                 <FileText className="h-4 w-4 text-gray-400 mt-0.5 flex-shrink-0" />
                 <div>{field.description}</div>
               </div>
@@ -283,7 +308,17 @@ const CustomFieldCard: React.FC<CustomFieldCardProps> = ({ field, onUpdate, onDe
                       onClick={toggleShowValue} 
                       className="h-6 text-xs p-0 px-2"
                     >
-                      {isShowingValue ? 'Contraer' : 'Expandir'}
+                      {isShowingValue ? (
+                        <>
+                          <EyeOff className="h-3.5 w-3.5 mr-1" />
+                          Contraer
+                        </>
+                      ) : (
+                        <>
+                          <Eye className="h-3.5 w-3.5 mr-1" />
+                          Expandir
+                        </>
+                      )}
                     </Button>
                   )}
                 </div>
@@ -313,7 +348,7 @@ const CustomFieldCard: React.FC<CustomFieldCardProps> = ({ field, onUpdate, onDe
             </div>
           </CardContent>
           
-          <CardFooter className="p-3 flex justify-end space-x-2 border-t border-gray-100">
+          <CardFooter className="p-3 flex justify-end space-x-2 border-t border-gray-100 bg-gray-50">
             {isEditing ? (
               <>
                 <Button variant="outline" size="sm" onClick={handleCancel}>
@@ -336,6 +371,15 @@ const CustomFieldCard: React.FC<CustomFieldCardProps> = ({ field, onUpdate, onDe
                       <Edit className="h-4 w-4 mr-1" />
                       Editar
                     </Button>
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      onClick={handleOpenEditDialog}
+                      className="text-blue-600 hover:text-blue-800 hover:bg-blue-50"
+                    >
+                      <PenSquare className="h-4 w-4 mr-1" />
+                      Editar valor
+                    </Button>
                   </>
                 )}
               </>
@@ -346,11 +390,13 @@ const CustomFieldCard: React.FC<CustomFieldCardProps> = ({ field, onUpdate, onDe
       
       {/* Diálogo para editar valores */}
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-3xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Editar valor del campo</DialogTitle>
+            <DialogTitle className="flex items-center gap-2">
+              {getFieldIcon()} Editar valor: {field.name}
+            </DialogTitle>
             <DialogDescription>
-              {field.name} - {getTypeLabel(field.type)}
+              {field.description || 'Modifica el valor de este campo personalizado'}
             </DialogDescription>
           </DialogHeader>
           
@@ -359,15 +405,15 @@ const CustomFieldCard: React.FC<CustomFieldCardProps> = ({ field, onUpdate, onDe
               <Textarea
                 value={editedValue}
                 onChange={(e) => setEditedValue(e.target.value)}
-                rows={10}
-                className="w-full"
+                rows={15}
+                className="w-full font-mono"
                 placeholder="Ingrese el valor del campo"
               />
             ) : valueIsObject ? (
               <Textarea
                 value={editedValue}
                 onChange={(e) => setEditedValue(e.target.value)}
-                rows={10}
+                rows={15}
                 className="w-full font-mono text-sm"
                 placeholder="Formato JSON"
               />

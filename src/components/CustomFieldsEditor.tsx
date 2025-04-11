@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { PlusCircle, Save, List, Grid, Search, RefreshCcw } from 'lucide-react';
+import { PlusCircle, Save, RefreshCcw, Search } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -10,7 +10,6 @@ import { useToast } from '@/components/ui/use-toast';
 import { Progress } from '@/components/ui/progress';
 import { Skeleton } from '@/components/ui/skeleton';
 import { http } from '@/lib/http-client';
-import JsonViewer from '@/components/JsonViewer';
 import CustomFieldsGrid from './CustomFieldsGrid';
 
 interface CustomField {
@@ -33,11 +32,9 @@ const CustomFieldsEditor = () => {
   const [filteredFields, setFilteredFields] = useState<CustomField[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isLoadingValues, setIsLoadingValues] = useState(false);
-  const [isLoadingDescriptions, setIsLoadingDescriptions] = useState(false);
   const [loadingProgress, setLoadingProgress] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [editableResponse, setEditableResponse] = useState(false);
-  const [viewMode, setViewMode] = useState<'json' | 'grid'>('grid');
   const [searchTerm, setSearchTerm] = useState('');
   const [hideEmptyFields, setHideEmptyFields] = useState(true);
   const { toast } = useToast();
@@ -218,11 +215,11 @@ const CustomFieldsEditor = () => {
     }
   };
 
-  const handleUpdateFields = (updatedData: any) => {
+  const handleUpdateFields = (updatedData: CustomField[]) => {
     setCustomFields(updatedData);
     
     if (hideEmptyFields) {
-      setFilteredFields(updatedData.filter((f: CustomField) => f.hasValue));
+      setFilteredFields(updatedData.filter(f => f.hasValue));
     } else {
       setFilteredFields(updatedData);
     }
@@ -264,20 +261,17 @@ const CustomFieldsEditor = () => {
     });
   };
 
-  const toggleViewMode = () => {
-    setViewMode(prev => prev === 'json' ? 'grid' : 'json');
-  };
-
   return (
-    <Card className="bg-white shadow-sm border border-gray-100 overflow-hidden">
-      <CardHeader className="bg-gray-50 border-b border-gray-100 p-4">
+    <Card className="bg-white shadow-lg border-0 rounded-xl overflow-hidden">
+      <CardHeader className="bg-gradient-to-r from-blue-50 to-indigo-50 border-b p-6">
         <div className="flex justify-between items-center">
           <div>
-            <CardTitle className="text-lg font-medium text-gray-900">
+            <CardTitle className="text-xl font-semibold text-gray-900 flex items-center">
+              <span className="mr-2">🔧</span> 
               Campos Personalizados
             </CardTitle>
-            <CardDescription className="text-sm text-gray-500">
-              Visualiza y edita los campos personalizados de EstudioKM
+            <CardDescription className="text-sm text-gray-600 mt-1">
+              Visualiza y edita los campos personalizados del asistente virtual
             </CardDescription>
           </div>
           <div className="flex items-center space-x-2">
@@ -286,6 +280,7 @@ const CustomFieldsEditor = () => {
               size="sm" 
               onClick={fetchCustomFields}
               disabled={isLoading || isLoadingValues}
+              className="bg-white"
             >
               {(isLoading || isLoadingValues) ? (
                 <>
@@ -302,7 +297,7 @@ const CustomFieldsEditor = () => {
             <Button 
               variant="default" 
               size="sm"
-              className="bg-blue-500 hover:bg-blue-600"
+              className="bg-blue-600 hover:bg-blue-700"
               onClick={handleSaveChanges}
             >
               <Save className="h-4 w-4 mr-1" />
@@ -312,15 +307,17 @@ const CustomFieldsEditor = () => {
         </div>
       </CardHeader>
 
-      <CardContent className="p-4 pt-6">
+      <CardContent className="p-6">
         {error ? (
-          <div className="bg-red-50 p-4 rounded-md text-red-800">
+          <div className="bg-red-50 p-4 rounded-md text-red-800 border border-red-200">
+            <p className="font-medium mb-1">Error</p>
             {error}
           </div>
         ) : isLoading ? (
           <div className="space-y-6">
-            <div className="flex justify-center py-8">
-              <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-500 mx-auto"></div>
+            <div className="flex flex-col items-center justify-center py-12">
+              <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500 mb-4"></div>
+              <p className="text-gray-600">Cargando campos personalizados...</p>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {[1, 2, 3, 4, 5, 6].map(i => (
@@ -340,26 +337,26 @@ const CustomFieldsEditor = () => {
             </div>
           </div>
         ) : (
-          <div className="space-y-4">
+          <div className="space-y-6">
             {isLoadingValues && (
-              <div className="mb-6">
+              <div className="mb-6 bg-blue-50 p-4 rounded-lg border border-blue-100">
                 <div className="flex justify-between mb-2">
-                  <span className="text-sm text-gray-500">Cargando valores de campos ({loadingProgress}%)</span>
+                  <span className="text-sm text-blue-800 font-medium">Cargando valores de campos</span>
                   <span className="text-sm font-medium">{loadingProgress}%</span>
                 </div>
                 <Progress value={loadingProgress} className="h-2" />
               </div>
             )}
             
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-center space-y-2 md:space-y-0">
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center space-y-4 md:space-y-0 bg-gray-50 p-4 rounded-lg">
               <div className="relative w-full md:w-80">
-                <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
                 <Input
                   type="text"
                   placeholder="Buscar campos..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-8 w-full"
+                  className="pl-10 w-full border-gray-200"
                 />
               </div>
               <div className="flex items-center space-x-4">
@@ -372,54 +369,30 @@ const CustomFieldsEditor = () => {
                   />
                 </div>
                 <div className="flex items-center space-x-2">
-                  <Label htmlFor="editable-toggle" className="text-sm">Editar</Label>
+                  <Label htmlFor="editable-toggle" className="text-sm">Modo edición</Label>
                   <Switch 
                     id="editable-toggle" 
                     checked={editableResponse} 
                     onCheckedChange={setEditableResponse}
                   />
                 </div>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={toggleViewMode}
-                  className="flex items-center space-x-1"
-                >
-                  {viewMode === 'json' ? (
-                    <>
-                      <Grid size={16} />
-                      <span>Vista Tarjetas</span>
-                    </>
-                  ) : (
-                    <>
-                      <List size={16} />
-                      <span>Vista JSON</span>
-                    </>
-                  )}
-                </Button>
               </div>
             </div>
             
-            <Label className="text-sm font-medium block mt-4">
-              {filteredFields.length} campos encontrados
-              {searchTerm && ` para "${searchTerm}"`}
-              {hideEmptyFields && ` (ocultando campos vacíos)`}
-            </Label>
+            <div className="bg-gradient-to-r from-purple-50 to-blue-50 p-4 rounded-lg mb-4">
+              <Label className="text-sm font-medium block">
+                {filteredFields.length} campos encontrados
+                {searchTerm && ` para "${searchTerm}"`}
+                {hideEmptyFields && ` (ocultando campos vacíos)`}
+              </Label>
+            </div>
             
-            {viewMode === 'json' ? (
-              <JsonViewer 
-                data={filteredFields} 
-                onUpdate={editableResponse ? handleUpdateFields : undefined} 
-                isEditable={editableResponse}
-              />
-            ) : (
-              <CustomFieldsGrid
-                fields={filteredFields}
-                onUpdate={handleUpdateFields}
-                isEditable={editableResponse}
-                onAddField={addNewField}
-              />
-            )}
+            <CustomFieldsGrid
+              fields={filteredFields}
+              onUpdate={handleUpdateFields}
+              isEditable={editableResponse}
+              onAddField={addNewField}
+            />
           </div>
         )}
       </CardContent>
