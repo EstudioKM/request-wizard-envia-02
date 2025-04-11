@@ -52,14 +52,7 @@ const CustomFieldsGrid: React.FC<CustomFieldsGridProps> = ({
     onUpdate(updatedFields);
   };
   
-  const handleFieldDelete = (id: number) => {
-    const updatedFields = fields.filter(field => field.id !== id);
-    onUpdate(updatedFields);
-  };
-  
-  const handleEditClick = (field: CustomField) => {
-    if (!isEditable) return;
-    
+  const handleFieldClick = (field: CustomField) => {
     setSelectedField(field);
     if (field.value !== undefined && field.value !== null) {
       setEditedValue(typeof field.value === 'object' ? JSON.stringify(field.value) : String(field.value));
@@ -177,15 +170,14 @@ const CustomFieldsGrid: React.FC<CustomFieldsGridProps> = ({
               <TableRow className="bg-gray-50">
                 <TableHead className="w-1/4">Nombre del campo</TableHead>
                 <TableHead className="w-1/12">Tipo</TableHead>
-                <TableHead className="w-1/2">Valor</TableHead>
-                <TableHead className="w-1/12 text-right">Acciones</TableHead>
+                <TableHead className="w-3/4">Valor</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {sortedFields.map((field) => (
                 <TableRow 
                   key={field.id} 
-                  onClick={() => handleEditClick(field)} 
+                  onClick={() => handleFieldClick(field)} 
                   className="cursor-pointer hover:bg-gray-50 transition-colors"
                 >
                   <TableCell className="font-medium">
@@ -214,21 +206,6 @@ const CustomFieldsGrid: React.FC<CustomFieldsGridProps> = ({
                       </div>
                     ) : (
                       <span className="text-gray-400 italic">Sin valor</span>
-                    )}
-                  </TableCell>
-                  <TableCell className="text-right">
-                    {isEditable && (
-                      <Button 
-                        variant="ghost" 
-                        size="sm" 
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleEditClick(field);
-                        }}
-                        className="h-8 text-blue-600 hover:text-blue-800 hover:bg-blue-50"
-                      >
-                        <Edit className="h-4 w-4" />
-                      </Button>
                     )}
                   </TableCell>
                 </TableRow>
@@ -261,7 +238,7 @@ const CustomFieldsGrid: React.FC<CustomFieldsGridProps> = ({
               <DialogHeader>
                 <DialogTitle className="flex items-center gap-2 text-xl">
                   {getTypeIcon(selectedField.type)} 
-                  Editar: {selectedField.name}
+                  {selectedField.name}
                 </DialogTitle>
                 <DialogDescription>
                   {selectedField.description || 'Modifica el valor de este campo personalizado'}
