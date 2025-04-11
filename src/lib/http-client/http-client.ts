@@ -195,7 +195,7 @@ export class HttpClient {
    */
   private buildURL(url: string, params?: Record<string, string | number | boolean | undefined>): string {
     // Construir la URL base
-    const baseURL = this.baseURL || options.baseURL || '';
+    const baseURL = this.baseURL || '';
     let fullURL = url.startsWith('http') ? url : `${baseURL}${url}`;
     
     // Añadir parámetros si existen

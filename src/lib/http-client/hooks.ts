@@ -1,6 +1,6 @@
 
 import { useQuery } from '@tanstack/react-query';
-import { http, RequestOptions, HttpResponse } from './index';
+import { http, RequestOptions } from './index';
 
 /**
  * Hook para realizar peticiones GET con React Query
@@ -67,7 +67,7 @@ export function useRequest<T = any>(
     queryFn: async () => {
       if (!url) throw new Error('URL no proporcionada');
       
-      let response: HttpResponse<T>;
+      let response;
       
       switch (method) {
         case 'GET':
