@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Edit, Save, X, Trash2, Eye, EyeOff, Loader2, FileText, Tag, ChevronDown, ChevronUp, PenSquare } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
@@ -10,7 +9,6 @@ import { Textarea } from '@/components/ui/textarea';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { http } from '@/lib/http-client';
 import { useToast } from '@/components/ui/use-toast';
 
 interface CustomField {
@@ -103,33 +101,28 @@ const CustomFieldCard: React.FC<CustomFieldCardProps> = ({ field, onUpdate, onDe
   const handleSaveValue = () => {
     let parsedValue = editedValue;
     
-    // Intentar parsear como JSON si parece ser un objeto
-    if (typeof field.value === 'object' && editedValue.trim().startsWith('{')) {
-      try {
-        parsedValue = JSON.parse(editedValue);
-      } catch (error) {
-        toast({
-          title: "Error en formato JSON",
-          description: "El valor no es un JSON válido",
-          variant: "destructive"
-        });
-        return;
-      }
+    try {
+      onUpdate({
+        ...field,
+        value: parsedValue,
+        hasValue: true,
+        updatedAt: new Date().toISOString()
+      });
+      
+      setIsEditDialogOpen(false);
+      
+      toast({
+        title: "Valor actualizado",
+        description: "El valor del campo ha sido actualizado correctamente"
+      });
+    } catch (error) {
+      console.error("Error al guardar valor:", error);
+      toast({
+        title: "Error al guardar",
+        description: "No se pudo actualizar el valor del campo",
+        variant: "destructive"
+      });
     }
-    
-    onUpdate({
-      ...field,
-      value: parsedValue,
-      hasValue: true,
-      updatedAt: new Date().toISOString()
-    });
-    
-    setIsEditDialogOpen(false);
-    
-    toast({
-      title: "Valor actualizado",
-      description: "El valor del campo ha sido actualizado correctamente"
-    });
   };
   
   const getTypeColor = (type: string) => {

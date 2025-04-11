@@ -67,6 +67,26 @@ const CustomFieldsGrid: React.FC<CustomFieldsGridProps> = ({
     }
   };
   
+  const renderEmptyState = () => (
+    <div className="flex flex-col items-center justify-center py-16 bg-gray-50 rounded-lg border border-gray-200 text-center">
+      <div className="text-gray-400 text-6xl mb-4">📋</div>
+      <h3 className="text-lg font-medium text-gray-700 mb-2">No hay campos disponibles</h3>
+      <p className="text-gray-500 text-center max-w-md mb-4">
+        No se encontraron campos que coincidan con los criterios de búsqueda o que tengan valores asignados.
+      </p>
+      {isEditable && (
+        <Button
+          variant="outline"
+          className="mt-2"
+          onClick={onAddField}
+        >
+          <PlusCircle className="h-4 w-4 mr-2" />
+          Añadir nuevo campo
+        </Button>
+      )}
+    </div>
+  );
+  
   return (
     <div className="space-y-8">
       {fields.length > 0 ? (
@@ -91,23 +111,7 @@ const CustomFieldsGrid: React.FC<CustomFieldsGridProps> = ({
           ))}
         </div>
       ) : (
-        <div className="flex flex-col items-center justify-center py-16 bg-gray-50 rounded-lg border border-gray-200">
-          <div className="text-gray-400 text-6xl mb-4">📋</div>
-          <h3 className="text-lg font-medium text-gray-700 mb-2">No hay campos disponibles</h3>
-          <p className="text-gray-500 text-center max-w-md mb-4">
-            No se encontraron campos que coincidan con los criterios de búsqueda o que tengan valores asignados.
-          </p>
-          {isEditable && (
-            <Button
-              variant="outline"
-              className="mt-2"
-              onClick={onAddField}
-            >
-              <PlusCircle className="h-4 w-4 mr-2" />
-              Añadir nuevo campo
-            </Button>
-          )}
-        </div>
+        renderEmptyState()
       )}
       
       {isEditable && fields.length > 0 && (

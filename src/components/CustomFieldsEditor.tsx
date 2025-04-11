@@ -11,6 +11,7 @@ import { Progress } from '@/components/ui/progress';
 import { Skeleton } from '@/components/ui/skeleton';
 import { http } from '@/lib/http-client';
 import CustomFieldsGrid from './CustomFieldsGrid';
+import { MOCK_CUSTOM_FIELDS } from '@/data/mockData';
 
 interface CustomField {
   id: number;
@@ -37,6 +38,8 @@ const CustomFieldsEditor = () => {
   const [editableResponse, setEditableResponse] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [hideEmptyFields, setHideEmptyFields] = useState(true);
+  const [retryCount, setRetryCount] = useState(0);
+  const [useMockData, setUseMockData] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -60,42 +63,84 @@ const CustomFieldsEditor = () => {
     setFilteredFields(filtered);
   }, [searchTerm, customFields, hideEmptyFields]);
 
+  const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+
   const fetchCustomFields = async () => {
     setIsLoading(true);
     setError(null);
 
     try {
-      // Obtener la lista de campos personalizados
-      const response = await http.get('https://app.estudiokm.com.ar/api/accounts/custom_fields', {
-        headers: {
-          'accept': 'application/json',
-          'X-ACCESS-TOKEN': '1330256.GzFpRpZKULHhFTun91Siftf93toXQImohKLCW75'
+      let fields;
+      
+      // Si tenemos demasiados reintentos o se activó manualmente, usar datos de prueba
+      if (retryCount >= 3 || useMockData) {
+        await sleep(1000); // Simular tiempo de carga
+        fields = [...MOCK_CUSTOM_FIELDS];
+        
+        if (!useMockData) {
+          setUseMockData(true);
+          toast({
+            title: 'Usando datos de prueba',
+            description: 'Demasiados intentos fallidos. Se están usando datos de ejemplo.',
+            variant: 'warning'
+          });
+        } else {
+          toast({
+            title: 'Datos de prueba cargados',
+            description: `Se cargaron ${fields.length} campos de prueba`,
+          });
         }
-      });
-
-      // Transformar la respuesta para incluir descripciones y otra información relevante
-      const fields = response.data.map((field: any) => ({
-        id: field.id,
-        accountId: field.account_id || 1,
-        name: field.name,
-        type: field.type || '0',
-        description: field.description || '',
-        options: field.options,
-        required: field.required,
-        order: field.order,
-        createdAt: field.created_at || new Date().toISOString(),
-        updatedAt: field.updated_at || new Date().toISOString(),
-        hasValue: false  // Se actualizará cuando se carguen los valores
-      }));
+      } else {
+        // Intentar obtener datos reales
+        try {
+          const response = await http.get('https://app.estudiokm.com.ar/api/accounts/custom_fields', {
+            headers: {
+              'accept': 'application/json',
+              'X-ACCESS-TOKEN': '1330256.GzFpRpZKULHhFTun91Siftf93toXQImohKLCW75'
+            }
+          });
+          
+          // Transformar la respuesta para incluir descripciones y otra información relevante
+          fields = response.data.map((field: any) => ({
+            id: field.id,
+            accountId: field.account_id || 1,
+            name: field.name,
+            type: field.type || '0',
+            description: field.description || '',
+            options: field.options,
+            required: field.required,
+            order: field.order,
+            createdAt: field.created_at || new Date().toISOString(),
+            updatedAt: field.updated_at || new Date().toISOString(),
+            hasValue: false  // Se actualizará cuando se carguen los valores
+          }));
+          
+          toast({
+            title: 'Campos cargados',
+            description: `Se cargaron ${fields.length} campos personalizados`,
+          });
+        } catch (apiError: any) {
+          console.error('Error en API:', apiError);
+          setRetryCount(prev => prev + 1);
+          
+          if (apiError.status === 429) {
+            toast({
+              variant: 'warning',
+              title: 'Límite de solicitudes excedido',
+              description: 'Esperando un momento antes de reintentar...',
+            });
+            
+            await sleep(3000);
+            return fetchCustomFields(); // Reintentar tras una pausa
+          }
+          
+          throw apiError; // Propagar otros errores
+        }
+      }
 
       setCustomFields(fields);
       setFilteredFields(hideEmptyFields ? [] : fields);
       
-      toast({
-        title: 'Campos cargados',
-        description: `Se cargaron ${fields.length} campos personalizados`,
-      });
-
       // Cargar automáticamente los valores de los campos
       if (fields.length > 0) {
         await fetchAllFieldValues(fields);
@@ -103,11 +148,34 @@ const CustomFieldsEditor = () => {
     } catch (err: any) {
       console.error('Error al cargar campos personalizados:', err);
       setError(err.message || 'Error al cargar campos personalizados');
-      toast({
-        variant: 'destructive',
-        title: 'Error',
-        description: err.message || 'Error al cargar campos personalizados',
-      });
+      
+      // Si aún no estamos usando datos de prueba, ofrecer cambiar a ellos
+      if (!useMockData) {
+        toast({
+          variant: 'destructive',
+          title: 'Error',
+          description: 'Error al cargar campos. ¿Desea usar datos de prueba?',
+          action: (
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={() => {
+                setUseMockData(true);
+                fetchCustomFields();
+              }}
+              className="bg-white"
+            >
+              Usar datos de prueba
+            </Button>
+          ),
+        });
+      } else {
+        toast({
+          variant: 'destructive',
+          title: 'Error',
+          description: err.message || 'Error al cargar campos personalizados',
+        });
+      }
     } finally {
       setIsLoading(false);
     }
@@ -128,65 +196,25 @@ const CustomFieldsEditor = () => {
     });
     
     try {
-      // Utilizamos Promise.all para manejar múltiples solicitudes en paralelo
-      // Dividimos en grupos para no sobrecargar el servidor
-      const chunkSize = 5;
-      for (let i = 0; i < fields.length; i += chunkSize) {
-        const chunk = fields.slice(i, i + chunkSize);
+      // Si estamos usando datos de prueba, establecer valores simulados
+      if (useMockData) {
+        await sleep(1500); // Simulamos tiempo de carga
         
-        await Promise.all(
-          chunk.map(async (field, index) => {
-            try {
-              // Intentar con el primer endpoint
-              let response;
-              let success = false;
-              
-              try {
-                response = await http.get(`https://app.estudiokm.com.ar/api/accounts/bot_fields/${field.id}`, {
-                  headers: {
-                    'accept': 'application/json',
-                    'X-ACCESS-TOKEN': '1330256.GzFpRpZKULHhFTun91Siftf93toXQImohKLCW75'
-                  }
-                });
-                success = true;
-              } catch (err) {
-                console.log(`Primer endpoint falló para campo ${field.id}, intentando con el segundo endpoint...`);
-                // Si falla, intentar con el segundo endpoint
-                response = await http.get(`https://app.estudiokm.com.ar/api/accounts/custom_fields/name/${field.id}`, {
-                  headers: {
-                    'accept': 'application/json',
-                    'X-ACCESS-TOKEN': '1330256.GzFpRpZKULHhFTun91Siftf93toXQImohKLCW75'
-                  }
-                });
-                success = true;
-              }
-              
-              if (success) {
-                // Actualizar el campo con su valor
-                const fieldIndex = updatedFields.findIndex(f => f.id === field.id);
-                if (fieldIndex !== -1) {
-                  const hasValue = response.data.value !== null && 
-                                  response.data.value !== undefined && 
-                                  response.data.value !== "";
-                                  
-                  updatedFields[fieldIndex] = {
-                    ...updatedFields[fieldIndex],
-                    value: response.data.value,
-                    hasValue: hasValue
-                  };
-                }
-              }
-            } catch (error) {
-              console.error(`Error al cargar el valor para el campo ${field.id} con ambos endpoints:`, error);
-              // No detenemos el proceso si un campo falla
-            } finally {
-              completedCount++;
-              setLoadingProgress(Math.round((completedCount / fields.length) * 100));
-            }
-          })
-        );
+        // Asignamos valores de prueba a algunos campos
+        fields.forEach((field, index) => {
+          // Agregar valores a algunos campos (60% con valores)
+          const hasValue = index % 10 !== 0; // 90% de los campos tienen valores
+          
+          updatedFields[index] = {
+            ...field,
+            value: hasValue ? getMockValueForType(field.type, field.name) : null,
+            hasValue: hasValue
+          };
+          
+          completedCount++;
+          setLoadingProgress(Math.round((completedCount / fields.length) * 100));
+        });
         
-        // Actualizamos el estado con los valores cargados hasta el momento
         setCustomFields([...updatedFields]);
         
         // Aplicamos el filtro si está habilitado
@@ -194,6 +222,91 @@ const CustomFieldsEditor = () => {
           setFilteredFields(updatedFields.filter(f => f.hasValue));
         } else {
           setFilteredFields([...updatedFields]);
+        }
+        
+        const fieldsWithValues = updatedFields.filter(f => f.hasValue).length;
+        
+        toast({
+          title: 'Valores cargados',
+          description: `Se cargaron valores para ${fieldsWithValues} de ${fields.length} campos`,
+        });
+        
+        setIsLoadingValues(false);
+        return;
+      }
+      
+      // Datos reales: procesar en pequeños lotes para evitar límite de solicitudes
+      const chunkSize = 2; // Reducido para evitar errores 429
+      
+      for (let i = 0; i < fields.length; i += chunkSize) {
+        const chunk = fields.slice(i, i + chunkSize);
+        
+        // Procesar cada campo con un retraso entre solicitudes
+        for (const field of chunk) {
+          try {
+            // Intentar con el primer endpoint
+            let response;
+            let success = false;
+            
+            try {
+              response = await http.get(`https://app.estudiokm.com.ar/api/accounts/bot_fields/${field.id}`, {
+                headers: {
+                  'accept': 'application/json',
+                  'X-ACCESS-TOKEN': '1330256.GzFpRpZKULHhFTun91Siftf93toXQImohKLCW75'
+                }
+              });
+              success = true;
+            } catch (err) {
+              console.log(`Primer endpoint falló para campo ${field.id}, intentando con el segundo endpoint...`);
+              
+              // Pausa entre intentos
+              await sleep(500);
+              
+              // Si falla, intentar con el segundo endpoint
+              response = await http.get(`https://app.estudiokm.com.ar/api/accounts/custom_fields/name/${field.id}`, {
+                headers: {
+                  'accept': 'application/json',
+                  'X-ACCESS-TOKEN': '1330256.GzFpRpZKULHhFTun91Siftf93toXQImohKLCW75'
+                }
+              });
+              success = true;
+            }
+            
+            if (success) {
+              // Actualizar el campo con su valor
+              const fieldIndex = updatedFields.findIndex(f => f.id === field.id);
+              if (fieldIndex !== -1) {
+                const hasValue = response.data.value !== null && 
+                              response.data.value !== undefined && 
+                              response.data.value !== "";
+                              
+                updatedFields[fieldIndex] = {
+                  ...updatedFields[fieldIndex],
+                  value: response.data.value,
+                  hasValue: hasValue
+                };
+              }
+            }
+          } catch (error) {
+            console.error(`Error al cargar el valor para el campo ${field.id} con ambos endpoints:`, error);
+            // No detenemos el proceso si un campo falla
+          } finally {
+            completedCount++;
+            setLoadingProgress(Math.round((completedCount / fields.length) * 100));
+            
+            // Pausa entre solicitudes para evitar límite de velocidad (429)
+            await sleep(1000);
+          }
+          
+          // Actualizamos el estado con los valores cargados hasta el momento
+          setCustomFields([...updatedFields]);
+          
+          // Aplicamos el filtro si está habilitado
+          if (hideEmptyFields) {
+            setFilteredFields(updatedFields.filter(f => f.hasValue));
+          } else {
+            setFilteredFields([...updatedFields]);
+          }
         }
       }
       
@@ -205,13 +318,61 @@ const CustomFieldsEditor = () => {
       });
     } catch (err) {
       console.error('Error al cargar los valores de los campos:', err);
-      toast({
-        variant: 'destructive',
-        title: 'Error',
-        description: 'Ocurrieron errores al cargar algunos valores',
-      });
+      
+      // Si hay demasiados errores, sugerir cambiar a datos de prueba
+      if (!useMockData) {
+        toast({
+          variant: 'destructive',
+          title: 'Error en carga de valores',
+          description: '¿Desea usar datos de prueba?',
+          action: (
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={() => {
+                setUseMockData(true);
+                fetchCustomFields();
+              }}
+              className="bg-white"
+            >
+              Usar datos de prueba
+            </Button>
+          ),
+        });
+      } else {
+        toast({
+          variant: 'destructive',
+          title: 'Error',
+          description: 'Ocurrieron errores al cargar algunos valores',
+        });
+      }
     } finally {
       setIsLoadingValues(false);
+    }
+  };
+
+  const getMockValueForType = (type: string, name: string): any => {
+    switch (type) {
+      case '0': // Texto
+        return name.includes('Email') ? 'info@estudiokm.com.ar' : 
+               name.includes('Nombre') ? 'Estudio KM' :
+               name.includes('Dirección') ? 'Av. Corrientes 1234, CABA' :
+               name.includes('Teléfono') ? '+54 11 4567-8900' :
+               `Valor de ejemplo para ${name}`;
+      case '1': // Número
+        return Math.floor(Math.random() * 1000);
+      case '2': // Fecha
+        return new Date().toISOString().split('T')[0];
+      case '3': // Selección
+        return ['Opción A', 'Opción B', 'Opción C'][Math.floor(Math.random() * 3)];
+      case '4': // Checkbox
+        return Math.random() > 0.5;
+      case '5': // Texto largo
+        return `Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nullam auctor, nisl eget ultricies ultrices, 
+                nunc nisl aliquam nunc, vitae aliquam nunc nisl eget nunc. Nullam auctor, nisl eget ultricies ultrices,
+                nunc nisl aliquam nunc, vitae aliquam nunc nisl eget nunc. Este es un texto largo de ejemplo para ${name}.`;
+      default:
+        return `Valor de ejemplo para tipo ${type}`;
     }
   };
 
@@ -261,6 +422,12 @@ const CustomFieldsEditor = () => {
     });
   };
 
+  const toggleMockData = () => {
+    setUseMockData(!useMockData);
+    setRetryCount(0);
+    fetchCustomFields();
+  };
+
   return (
     <Card className="bg-white shadow-lg border-0 rounded-xl overflow-hidden">
       <CardHeader className="bg-gradient-to-r from-blue-50 to-indigo-50 border-b p-6">
@@ -275,6 +442,14 @@ const CustomFieldsEditor = () => {
             </CardDescription>
           </div>
           <div className="flex items-center space-x-2">
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={toggleMockData}
+              className="bg-white"
+            >
+              {useMockData ? 'Usar API Real' : 'Usar Datos de Prueba'}
+            </Button>
             <Button 
               variant="outline" 
               size="sm" 
@@ -312,6 +487,16 @@ const CustomFieldsEditor = () => {
           <div className="bg-red-50 p-4 rounded-md text-red-800 border border-red-200">
             <p className="font-medium mb-1">Error</p>
             {error}
+            <div className="mt-3">
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={toggleMockData}
+                className="bg-white"
+              >
+                {useMockData ? 'Intentar con API Real' : 'Usar Datos de Prueba'}
+              </Button>
+            </div>
           </div>
         ) : isLoading ? (
           <div className="space-y-6">
