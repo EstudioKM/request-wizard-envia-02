@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React from 'react';
 import { PlusCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import CustomFieldCard from './CustomFieldCard';
@@ -15,6 +15,7 @@ interface CustomField {
   order?: number;
   createdAt: string;
   updatedAt: string;
+  value?: any;
 }
 
 interface CustomFieldsGridProps {

@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Edit, Save, X, Trash2, Eye, EyeOff, Loader2 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -20,6 +20,7 @@ interface CustomField {
   order?: number;
   createdAt: string;
   updatedAt: string;
+  value?: any;
 }
 
 interface CustomFieldCardProps {
@@ -32,11 +33,19 @@ interface CustomFieldCardProps {
 const CustomFieldCard: React.FC<CustomFieldCardProps> = ({ field, onUpdate, onDelete, isEditable }) => {
   const [isEditing, setIsEditing] = useState(false);
   const [editedField, setEditedField] = useState<CustomField>(field);
-  const [isShowingValue, setIsShowingValue] = useState(false);
-  const [fieldValue, setFieldValue] = useState<any>(null);
+  const [isShowingValue, setIsShowingValue] = useState(!!field.value);
   const [isLoadingValue, setIsLoadingValue] = useState(false);
   const [valueError, setValueError] = useState<string | null>(null);
   const { toast } = useToast();
+  
+  useEffect(() => {
+    // Actualizar el campo editado cuando cambia el campo original
+    setEditedField(field);
+    // Mostrar el valor automáticamente si existe
+    if (field.value) {
+      setIsShowingValue(true);
+    }
+  }, [field]);
   
   const handleEdit = () => {
     if (!isEditable) return;
@@ -105,6 +114,13 @@ const CustomFieldCard: React.FC<CustomFieldCardProps> = ({ field, onUpdate, onDe
       return;
     }
     
+    // Si ya tenemos el valor, solo mostrarlo
+    if (field.value !== undefined) {
+      setIsShowingValue(true);
+      return;
+    }
+    
+    // Si no tenemos el valor, cargarlo
     setIsShowingValue(true);
     setIsLoadingValue(true);
     setValueError(null);
@@ -117,7 +133,14 @@ const CustomFieldCard: React.FC<CustomFieldCardProps> = ({ field, onUpdate, onDe
         }
       });
       
-      setFieldValue(response.data);
+      // Actualizar el campo con el valor recibido
+      const updatedField = {
+        ...field,
+        value: response.data.value
+      };
+      
+      onUpdate(updatedField);
+      
       toast({
         title: 'Valor cargado',
         description: 'Se ha obtenido el valor del campo con éxito',
@@ -236,9 +259,9 @@ const CustomFieldCard: React.FC<CustomFieldCardProps> = ({ field, onUpdate, onDe
                   <div className="text-sm text-red-500">{valueError}</div>
                 ) : (
                   <div className={`text-sm ${isLongText ? 'whitespace-pre-wrap' : ''}`}>
-                    {typeof fieldValue === 'object' 
-                      ? JSON.stringify(fieldValue, null, 2) 
-                      : String(fieldValue)}
+                    {typeof field.value === 'object' 
+                      ? JSON.stringify(field.value, null, 2) 
+                      : String(field.value || '')}
                   </div>
                 )}
               </div>

@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { useToast } from '@/components/ui/use-toast';
+import { Progress } from '@/components/ui/progress';
 import { http } from '@/lib/http-client';
 import JsonViewer from '@/components/JsonViewer';
 import CustomFieldsGrid from './CustomFieldsGrid';
@@ -22,12 +23,15 @@ interface CustomField {
   order?: number;
   createdAt: string;
   updatedAt: string;
+  value?: any;
 }
 
 const CustomFieldsEditor = () => {
   const [customFields, setCustomFields] = useState<CustomField[]>([]);
   const [filteredFields, setFilteredFields] = useState<CustomField[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isLoadingValues, setIsLoadingValues] = useState(false);
+  const [loadingProgress, setLoadingProgress] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [editableResponse, setEditableResponse] = useState(false);
   const [viewMode, setViewMode] = useState<'json' | 'grid'>('grid');
@@ -78,6 +82,9 @@ const CustomFieldsEditor = () => {
         title: 'Campos cargados',
         description: `Se cargaron ${fields.length} campos personalizados`,
       });
+
+      // Cargar automáticamente los valores de los campos
+      fetchAllFieldValues(fields);
     } catch (err: any) {
       console.error('Error al cargar campos personalizados:', err);
       setError(err.message || 'Error al cargar campos personalizados');
@@ -88,6 +95,76 @@ const CustomFieldsEditor = () => {
       });
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const fetchAllFieldValues = async (fields: CustomField[]) => {
+    if (fields.length === 0) return;
+    
+    setIsLoadingValues(true);
+    setLoadingProgress(0);
+    
+    const updatedFields = [...fields];
+    let completedCount = 0;
+    
+    toast({
+      title: 'Cargando valores',
+      description: `Obteniendo valores para ${fields.length} campos...`,
+    });
+    
+    try {
+      // Utilizamos Promise.all para manejar múltiples solicitudes en paralelo
+      // Dividimos en grupos para no sobrecargar el servidor
+      const chunkSize = 5;
+      for (let i = 0; i < fields.length; i += chunkSize) {
+        const chunk = fields.slice(i, i + chunkSize);
+        
+        await Promise.all(
+          chunk.map(async (field, index) => {
+            try {
+              const response = await http.get(`https://app.estudiokm.com.ar/api/accounts/bot_fields/${field.id}`, {
+                headers: {
+                  'accept': 'application/json',
+                  'X-ACCESS-TOKEN': '1330256.GzFpRpZKULHhFTun91Siftf93toXQImohKLCW75'
+                }
+              });
+              
+              // Actualizar el campo con su valor
+              const fieldIndex = updatedFields.findIndex(f => f.id === field.id);
+              if (fieldIndex !== -1) {
+                updatedFields[fieldIndex] = {
+                  ...updatedFields[fieldIndex],
+                  value: response.data.value
+                };
+              }
+            } catch (error) {
+              console.error(`Error al cargar el valor para el campo ${field.id}:`, error);
+              // No detenemos el proceso si un campo falla
+            } finally {
+              completedCount++;
+              setLoadingProgress(Math.round((completedCount / fields.length) * 100));
+            }
+          })
+        );
+        
+        // Actualizamos el estado con los valores cargados hasta el momento
+        setCustomFields([...updatedFields]);
+        setFilteredFields([...updatedFields]);
+      }
+      
+      toast({
+        title: 'Valores cargados',
+        description: `Se cargaron los valores de ${completedCount} campos`,
+      });
+    } catch (err) {
+      console.error('Error al cargar los valores de los campos:', err);
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: 'Ocurrieron errores al cargar algunos valores',
+      });
+    } finally {
+      setIsLoadingValues(false);
     }
   };
 
@@ -147,9 +224,9 @@ const CustomFieldsEditor = () => {
               variant="outline" 
               size="sm" 
               onClick={fetchCustomFields}
-              disabled={isLoading}
+              disabled={isLoading || isLoadingValues}
             >
-              {isLoading ? (
+              {(isLoading || isLoadingValues) ? (
                 <>
                   <RefreshCcw className="h-4 w-4 mr-1 animate-spin" />
                   Cargando...
@@ -186,6 +263,16 @@ const CustomFieldsEditor = () => {
           </div>
         ) : (
           <div className="space-y-4">
+            {isLoadingValues && (
+              <div className="mb-6">
+                <div className="flex justify-between mb-2">
+                  <span className="text-sm text-gray-500">Cargando valores de campos ({loadingProgress}%)</span>
+                  <span className="text-sm font-medium">{loadingProgress}%</span>
+                </div>
+                <Progress value={loadingProgress} className="h-2" />
+              </div>
+            )}
+            
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center space-y-2 md:space-y-0">
               <div className="relative w-full md:w-80">
                 <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
