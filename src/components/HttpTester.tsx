@@ -8,6 +8,7 @@ import { Switch } from '@/components/ui/switch';
 import { toast } from '@/components/ui/use-toast';
 import { http, RequestOptions } from '@/lib/http-client';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
+import JsonViewer from '@/components/JsonViewer';
 
 interface HeaderItem {
   id: string;
@@ -34,6 +35,7 @@ const HttpTester = () => {
   const [showAdvancedOptions, setShowAdvancedOptions] = useState(false);
   const [errorDetails, setErrorDetails] = useState<string | null>(null);
   const [useProxy, setUseProxy] = useState(true);
+  const [editableResponse, setEditableResponse] = useState(false);
 
   const addHeader = () => {
     const newId = (headers.length + 1).toString();
@@ -153,6 +155,14 @@ const HttpTester = () => {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleUpdateJson = (newData: any) => {
+    setResponse(newData);
+    toast({
+      title: 'JSON actualizado',
+      description: 'Los datos han sido modificados localmente',
+    });
   };
 
   const testJsonPlaceholder = () => {
@@ -409,25 +419,37 @@ const HttpTester = () => {
 
           {response && (
             <div className="mt-6">
-              <h3 className="font-semibold text-lg mb-2">Respuesta:</h3>
-              <div className="bg-gray-100 p-4 rounded-md overflow-auto max-h-[400px]">
-                <pre className="text-sm">
-                  {response.error ? (
-                    <div className="text-red-500">
-                      <p><strong>Error:</strong> {response.message}</p>
-                      <p><strong>Status:</strong> {response.status}</p>
-                      {response.response && (
-                        <div>
-                          <p><strong>Response data:</strong></p>
-                          <div>{JSON.stringify(response.response.data, null, 2)}</div>
-                        </div>
-                      )}
-                    </div>
-                  ) : (
-                    JSON.stringify(response, null, 2)
-                  )}
-                </pre>
+              <div className="flex items-center justify-between mb-2">
+                <h3 className="font-semibold text-lg">Respuesta:</h3>
+                <div className="flex items-center space-x-2">
+                  <label htmlFor="editableToggle" className="text-sm">Editable</label>
+                  <Switch 
+                    id="editableToggle" 
+                    checked={editableResponse} 
+                    onCheckedChange={setEditableResponse}
+                  />
+                </div>
               </div>
+              
+              {response.error ? (
+                <div className="bg-red-50 p-4 rounded-md">
+                  <h4 className="font-medium text-red-800 mb-2">Error en la respuesta</h4>
+                  <p><strong>Mensaje:</strong> {response.message}</p>
+                  <p><strong>Estado:</strong> {response.status}</p>
+                  {response.response && (
+                    <div className="mt-2">
+                      <p><strong>Datos:</strong></p>
+                      <JsonViewer data={response.response.data} isEditable={false} />
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <JsonViewer 
+                  data={response} 
+                  onUpdate={editableResponse ? handleUpdateJson : undefined} 
+                  isEditable={editableResponse}
+                />
+              )}
             </div>
           )}
         </CardContent>
