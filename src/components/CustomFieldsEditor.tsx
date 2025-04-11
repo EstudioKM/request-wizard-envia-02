@@ -8,6 +8,8 @@ import { Switch } from '@/components/ui/switch';
 import { useToast } from '@/components/ui/use-toast';
 import { Progress } from '@/components/ui/progress';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Badge } from '@/components/ui/badge';
+import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from '@/components/ui/table';
 import { http } from '@/lib/http-client';
 import CustomFieldsGrid from './CustomFieldsGrid';
 import { MOCK_CUSTOM_FIELDS } from '@/data/mockData';
@@ -79,7 +81,7 @@ const CustomFieldsEditor = () => {
           toast({
             title: 'Usando datos de prueba',
             description: 'Demasiados intentos fallidos. Se están usando datos de ejemplo.',
-            variant: 'warning'
+            variant: 'destructive'
           });
         } else {
           toast({
