@@ -26,17 +26,17 @@ const Index = () => {
             <h2 className="text-xl font-semibold mb-3 text-gray-800">Gestión de datos empresariales</h2>
             <p className="text-gray-600">
               En esta sección puedes configurar la información que tu asistente virtual conoce sobre tu empresa.
-              Haz clic en las tarjetas para expandir los detalles o en el botón de editar para modificar los valores.
+              Haz clic en las filas de la tabla para editar los valores de cada campo.
             </p>
             <div className="mt-4 flex flex-wrap gap-3">
               <div className="bg-white px-3 py-2 rounded-full text-sm font-medium text-blue-700 shadow-sm flex items-center">
-                <span className="mr-1">📝</span> Edición de datos
+                <span className="mr-1">📊</span> Vista en tabla
               </div>
               <div className="bg-white px-3 py-2 rounded-full text-sm font-medium text-green-700 shadow-sm flex items-center">
                 <span className="mr-1">🔍</span> Búsqueda avanzada
               </div>
               <div className="bg-white px-3 py-2 rounded-full text-sm font-medium text-purple-700 shadow-sm flex items-center">
-                <span className="mr-1">🚀</span> Actualización automática
+                <span className="mr-1">🚀</span> Edición en popup
               </div>
             </div>
           </div>

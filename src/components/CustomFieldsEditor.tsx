@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { PlusCircle, Save, RefreshCcw, Search } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -47,7 +46,6 @@ const CustomFieldsEditor = () => {
   }, []);
 
   useEffect(() => {
-    // Filtrar por término de búsqueda y por campos vacíos si está habilitado
     let filtered = customFields;
     
     if (searchTerm.trim() !== '') {
@@ -72,9 +70,8 @@ const CustomFieldsEditor = () => {
     try {
       let fields;
       
-      // Si tenemos demasiados reintentos o se activó manualmente, usar datos de prueba
       if (retryCount >= 3 || useMockData) {
-        await sleep(1000); // Simular tiempo de carga
+        await sleep(1000);
         fields = [...MOCK_CUSTOM_FIELDS];
         
         if (!useMockData) {
@@ -91,7 +88,6 @@ const CustomFieldsEditor = () => {
           });
         }
       } else {
-        // Intentar obtener datos reales
         try {
           const response = await http.get('https://app.estudiokm.com.ar/api/accounts/custom_fields', {
             headers: {
@@ -100,7 +96,6 @@ const CustomFieldsEditor = () => {
             }
           });
           
-          // Transformar la respuesta para incluir descripciones y otra información relevante
           fields = response.data.map((field: any) => ({
             id: field.id,
             accountId: field.account_id || 1,
@@ -112,7 +107,7 @@ const CustomFieldsEditor = () => {
             order: field.order,
             createdAt: field.created_at || new Date().toISOString(),
             updatedAt: field.updated_at || new Date().toISOString(),
-            hasValue: false  // Se actualizará cuando se carguen los valores
+            hasValue: false
           }));
           
           toast({
@@ -131,17 +126,16 @@ const CustomFieldsEditor = () => {
             });
             
             await sleep(3000);
-            return fetchCustomFields(); // Reintentar tras una pausa
+            return fetchCustomFields();
           }
           
-          throw apiError; // Propagar otros errores
+          throw apiError;
         }
       }
 
       setCustomFields(fields);
       setFilteredFields(hideEmptyFields ? [] : fields);
       
-      // Cargar automáticamente los valores de los campos
       if (fields.length > 0) {
         await fetchAllFieldValues(fields);
       }
@@ -149,7 +143,6 @@ const CustomFieldsEditor = () => {
       console.error('Error al cargar campos personalizados:', err);
       setError(err.message || 'Error al cargar campos personalizados');
       
-      // Si aún no estamos usando datos de prueba, ofrecer cambiar a ellos
       if (!useMockData) {
         toast({
           variant: 'destructive',
@@ -196,14 +189,11 @@ const CustomFieldsEditor = () => {
     });
     
     try {
-      // Si estamos usando datos de prueba, establecer valores simulados
       if (useMockData) {
-        await sleep(1500); // Simulamos tiempo de carga
+        await sleep(1500);
         
-        // Asignamos valores de prueba a algunos campos
         fields.forEach((field, index) => {
-          // Agregar valores a algunos campos (60% con valores)
-          const hasValue = index % 10 !== 0; // 90% de los campos tienen valores
+          const hasValue = index % 10 !== 0;
           
           updatedFields[index] = {
             ...field,
@@ -217,7 +207,6 @@ const CustomFieldsEditor = () => {
         
         setCustomFields([...updatedFields]);
         
-        // Aplicamos el filtro si está habilitado
         if (hideEmptyFields) {
           setFilteredFields(updatedFields.filter(f => f.hasValue));
         } else {
@@ -235,16 +224,13 @@ const CustomFieldsEditor = () => {
         return;
       }
       
-      // Datos reales: procesar en pequeños lotes para evitar límite de solicitudes
-      const chunkSize = 2; // Reducido para evitar errores 429
+      const chunkSize = 2;
       
       for (let i = 0; i < fields.length; i += chunkSize) {
         const chunk = fields.slice(i, i + chunkSize);
         
-        // Procesar cada campo con un retraso entre solicitudes
         for (const field of chunk) {
           try {
-            // Intentar con el primer endpoint
             let response;
             let success = false;
             
@@ -259,10 +245,8 @@ const CustomFieldsEditor = () => {
             } catch (err) {
               console.log(`Primer endpoint falló para campo ${field.id}, intentando con el segundo endpoint...`);
               
-              // Pausa entre intentos
               await sleep(500);
               
-              // Si falla, intentar con el segundo endpoint
               response = await http.get(`https://app.estudiokm.com.ar/api/accounts/custom_fields/name/${field.id}`, {
                 headers: {
                   'accept': 'application/json',
@@ -273,7 +257,6 @@ const CustomFieldsEditor = () => {
             }
             
             if (success) {
-              // Actualizar el campo con su valor
               const fieldIndex = updatedFields.findIndex(f => f.id === field.id);
               if (fieldIndex !== -1) {
                 const hasValue = response.data.value !== null && 
@@ -289,19 +272,15 @@ const CustomFieldsEditor = () => {
             }
           } catch (error) {
             console.error(`Error al cargar el valor para el campo ${field.id} con ambos endpoints:`, error);
-            // No detenemos el proceso si un campo falla
           } finally {
             completedCount++;
             setLoadingProgress(Math.round((completedCount / fields.length) * 100));
             
-            // Pausa entre solicitudes para evitar límite de velocidad (429)
             await sleep(1000);
           }
           
-          // Actualizamos el estado con los valores cargados hasta el momento
           setCustomFields([...updatedFields]);
           
-          // Aplicamos el filtro si está habilitado
           if (hideEmptyFields) {
             setFilteredFields(updatedFields.filter(f => f.hasValue));
           } else {
@@ -319,7 +298,6 @@ const CustomFieldsEditor = () => {
     } catch (err) {
       console.error('Error al cargar los valores de los campos:', err);
       
-      // Si hay demasiados errores, sugerir cambiar a datos de prueba
       if (!useMockData) {
         toast({
           variant: 'destructive',
@@ -353,21 +331,21 @@ const CustomFieldsEditor = () => {
 
   const getMockValueForType = (type: string, name: string): any => {
     switch (type) {
-      case '0': // Texto
+      case '0':
         return name.includes('Email') ? 'info@estudiokm.com.ar' : 
                name.includes('Nombre') ? 'Estudio KM' :
                name.includes('Dirección') ? 'Av. Corrientes 1234, CABA' :
                name.includes('Teléfono') ? '+54 11 4567-8900' :
                `Valor de ejemplo para ${name}`;
-      case '1': // Número
+      case '1':
         return Math.floor(Math.random() * 1000);
-      case '2': // Fecha
+      case '2':
         return new Date().toISOString().split('T')[0];
-      case '3': // Selección
+      case '3':
         return ['Opción A', 'Opción B', 'Opción C'][Math.floor(Math.random() * 3)];
-      case '4': // Checkbox
+      case '4':
         return Math.random() > 0.5;
-      case '5': // Texto largo
+      case '5':
         return `Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nullam auctor, nisl eget ultricies ultrices, 
                 nunc nisl aliquam nunc, vitae aliquam nunc nisl eget nunc. Nullam auctor, nisl eget ultricies ultrices,
                 nunc nisl aliquam nunc, vitae aliquam nunc nisl eget nunc. Este es un texto largo de ejemplo para ${name}.`;
@@ -396,15 +374,14 @@ const CustomFieldsEditor = () => {
       title: 'Guardando cambios',
       description: 'Implementación pendiente para guardar en el servidor',
     });
-    // Aquí se implementaría la lógica para guardar los cambios al servidor
   };
 
   const addNewField = () => {
     const newField: CustomField = {
-      id: Date.now(), // Temporal ID
+      id: Date.now(),
       accountId: customFields.length > 0 ? customFields[0].accountId : 1,
       name: 'Nuevo Campo',
-      type: '0', // Tipo texto por defecto
+      type: '0',
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
       hasValue: false
@@ -504,21 +481,32 @@ const CustomFieldsEditor = () => {
               <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500 mb-4"></div>
               <p className="text-gray-600">Cargando campos personalizados...</p>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {[1, 2, 3, 4, 5, 6].map(i => (
-                <Card key={i} className="border border-gray-200">
-                  <CardHeader className="p-4">
-                    <Skeleton className="h-5 w-3/4" />
-                  </CardHeader>
-                  <CardContent className="p-4">
-                    <div className="space-y-2">
-                      <Skeleton className="h-4 w-1/2" />
-                      <Skeleton className="h-4 w-3/4" />
-                      <Skeleton className="h-4 w-1/3" />
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
+            <div className="bg-white border rounded-lg shadow-sm overflow-hidden">
+              <Table>
+                <TableHeader>
+                  <TableRow className="bg-gray-50">
+                    <TableHead className="w-1/4"><Skeleton className="h-5 w-32" /></TableHead>
+                    <TableHead className="w-1/12"><Skeleton className="h-5 w-12" /></TableHead>
+                    <TableHead className="w-1/2"><Skeleton className="h-5 w-20" /></TableHead>
+                    <TableHead className="w-1/12 text-right"><Skeleton className="h-5 w-10 ml-auto" /></TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {[1, 2, 3, 4, 5, 6].map(i => (
+                    <TableRow key={i}>
+                      <TableCell>
+                        <div className="space-y-1">
+                          <Skeleton className="h-5 w-36" />
+                          <Skeleton className="h-3 w-24" />
+                        </div>
+                      </TableCell>
+                      <TableCell><Skeleton className="h-5 w-14" /></TableCell>
+                      <TableCell><Skeleton className="h-5 w-48" /></TableCell>
+                      <TableCell className="text-right"><Skeleton className="h-8 w-8 rounded-full ml-auto" /></TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
             </div>
           </div>
         ) : (
@@ -565,11 +553,16 @@ const CustomFieldsEditor = () => {
             </div>
             
             <div className="bg-gradient-to-r from-purple-50 to-blue-50 p-4 rounded-lg mb-4">
-              <Label className="text-sm font-medium block">
-                {filteredFields.length} campos encontrados
-                {searchTerm && ` para "${searchTerm}"`}
-                {hideEmptyFields && ` (ocultando campos vacíos)`}
-              </Label>
+              <div className="text-sm font-medium flex items-center justify-between">
+                <span>
+                  {filteredFields.length} campos encontrados
+                  {searchTerm && ` para "${searchTerm}"`}
+                  {hideEmptyFields && ` (ocultando campos vacíos)`}
+                </span>
+                <Badge variant="outline" className="bg-white">
+                  {editableResponse ? 'Modo edición activo' : 'Modo visualización'}
+                </Badge>
+              </div>
             </div>
             
             <CustomFieldsGrid
