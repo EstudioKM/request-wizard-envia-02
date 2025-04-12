@@ -225,5 +225,24 @@ export const AuthService = {
       console.error("Error al eliminar empresa:", error);
       return false;
     }
+  },
+  
+  // Métodos para gestionar usuarios en Supabase
+  getProfiles: async (): Promise<any[]> => {
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .order('email', { ascending: true });
+      
+      if (error) {
+        throw error;
+      }
+      
+      return data || [];
+    } catch (error) {
+      console.error("Error fetching profiles:", error);
+      return [];
+    }
   }
 };

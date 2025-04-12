@@ -5,6 +5,7 @@ import AdminLayout from '@/components/admin/AdminLayout';
 import CompanyList from '@/components/admin/CompanyList';
 import UserList from '@/components/admin/UserList';
 import { AuthService } from '@/services/AuthService';
+import { supabase } from "@/integrations/supabase/client";
 
 // Define our types to match those expected by the components
 export type Company = {
@@ -65,7 +66,59 @@ const Admin = () => {
   const loadProfiles = async () => {
     setIsLoadingProfiles(true);
     try {
-      // Por ahora, solo tenemos los usuarios predefinidos
+      // Intentar cargar perfiles desde Supabase
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        throw error;
+      }
+
+      if (data) {
+        console.log("Perfiles cargados desde Supabase:", data);
+        setProfiles(data);
+      } else {
+        // Si no hay datos, caer en los mock profiles
+        console.log("No se encontraron perfiles en Supabase, usando datos predefinidos");
+        const mockProfiles: Profile[] = [
+          {
+            id: "1",
+            email: "admin@example.com",
+            first_name: "Admin",
+            last_name: "User",
+            company_id: null,
+            role: "admin",
+            created_at: new Date().toISOString()
+          },
+          {
+            id: "2",
+            email: "empresa@example.com",
+            first_name: "Empresa",
+            last_name: "Usuario",
+            company_id: "1",
+            role: "user",
+            created_at: new Date().toISOString()
+          },
+          {
+            id: "3",
+            email: "ADMIN",
+            first_name: "Admin",
+            last_name: "User",
+            company_id: null,
+            role: "admin",
+            created_at: new Date().toISOString()
+          }
+        ];
+        
+        setProfiles(mockProfiles);
+      }
+    } catch (error: any) {
+      console.error("Error loading profiles:", error);
+      toast.error("Error al cargar usuarios: " + error.message);
+      
+      // En caso de error, caer en los perfiles predefinidos
       const mockProfiles: Profile[] = [
         {
           id: "1",
@@ -84,13 +137,19 @@ const Admin = () => {
           company_id: "1",
           role: "user",
           created_at: new Date().toISOString()
+        },
+        {
+          id: "3",
+          email: "ADMIN",
+          first_name: "Admin",
+          last_name: "User",
+          company_id: null,
+          role: "admin",
+          created_at: new Date().toISOString()
         }
       ];
       
       setProfiles(mockProfiles);
-    } catch (error: any) {
-      console.error("Error loading profiles:", error);
-      toast.error("Error al cargar usuarios: " + error.message);
     } finally {
       setIsLoadingProfiles(false);
     }
