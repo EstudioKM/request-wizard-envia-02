@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
@@ -24,7 +25,13 @@ const Login = () => {
       // Validate token before auto-login
       validateAndLogin(savedToken, true);
     }
-  }, []);
+    
+    // Check if admin is logged in
+    const isAdmin = localStorage.getItem('isAdmin') === 'true';
+    if (isAdmin) {
+      navigate('/admin');
+    }
+  }, [navigate]);
 
   const validateAndLogin = async (tokenValue: string, isAutoLogin = false) => {
     if (!tokenValue.trim()) {
@@ -101,8 +108,24 @@ const Login = () => {
       
       if (error) throw error;
       
-      toast.success("Sesión iniciada correctamente");
-      navigate('/dashboard');
+      // Verificar si el usuario es administrador para redirigirlo correctamente
+      const { data: profileData, error: profileError } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', data.session?.user.id)
+        .single();
+        
+      if (profileError) {
+        console.error('Error al verificar el rol:', profileError);
+        toast.success("Sesión iniciada correctamente");
+        navigate('/dashboard');
+      } else if (profileData?.role === 'admin') {
+        toast.success("Sesión iniciada como administrador");
+        navigate('/admin');
+      } else {
+        toast.success("Sesión iniciada correctamente");
+        navigate('/dashboard');
+      }
     } catch (err: any) {
       console.error('Error en login:', err);
       setError(err.message || 'Error al iniciar sesión');
