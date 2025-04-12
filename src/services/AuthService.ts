@@ -113,7 +113,7 @@ export const AuthService = {
     }
   },
   
-  // Verificar si el usuario es administrador
+  // Verificar si el usuario es administrador usando la nueva función is_admin_user()
   isAdmin: async () => {
     try {
       // First check if the user is logged in via Supabase
@@ -127,14 +127,15 @@ export const AuthService = {
         return user.role === 'admin';
       }
       
-      // If not in localStorage, check the database directly
-      const { data: profileData } = await supabase
-        .from('profiles')
-        .select('role')
-        .eq('id', data.session.user.id)
-        .maybeSingle();
-        
-      return profileData?.role === 'admin';
+      // If not in localStorage, check if user is admin using the RPC function
+      const { data: isAdmin, error } = await supabase.rpc('is_admin_user');
+      
+      if (error) {
+        console.error("Error al verificar si es admin:", error);
+        return false;
+      }
+      
+      return isAdmin;
     } catch (error) {
       console.error("Error al verificar rol de administrador:", error);
       return false;

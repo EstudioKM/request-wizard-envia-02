@@ -25,8 +25,9 @@ const AdminRoute: React.FC<AdminRouteProps> = ({ children }) => {
           return;
         }
         
-        // Check if the user is an admin
+        // Check if the user is an admin using the modified method
         const adminStatus = await AuthService.isAdmin();
+        console.log("Estado de administrador:", adminStatus);
         setIsAdmin(adminStatus);
       } catch (error) {
         console.error("Error al verificar estado de administrador:", error);

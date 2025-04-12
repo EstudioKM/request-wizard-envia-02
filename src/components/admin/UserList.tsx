@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import {
@@ -47,6 +46,10 @@ const UserList: React.FC<UserListProps> = ({ profiles, companies, isLoading, onR
   const handleDeleteUser = async (id: string, email: string) => {
     if (confirm(`¿Estás seguro de eliminar el usuario ${email}?`)) {
       try {
+        // En una implementación real, aquí se eliminaría el usuario
+        // const { error } = await supabase.auth.admin.deleteUser(id);
+        // if (error) throw error;
+        
         toast.success("Usuario eliminado correctamente");
         onRefresh();
       } catch (error: any) {

@@ -35,21 +35,13 @@ const Admin = () => {
   const navigate = useNavigate();
   
   useEffect(() => {
-    const checkAccess = async () => {
-      const currentUser = AuthService.getCurrentUser();
-      
-      if (!currentUser || currentUser.email !== "admin@example.com") {
-        toast.error("Solo admin@example.com tiene acceso a esta página");
-        navigate('/');
-        return;
-      }
-      
+    const loadData = async () => {
       console.log("Admin component mounted, loading data...");
       loadCompanies();
       loadProfiles();
     };
     
-    checkAccess();
+    loadData();
   }, [navigate]);
   
   const loadCompanies = async () => {
