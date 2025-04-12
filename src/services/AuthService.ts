@@ -1,3 +1,4 @@
+
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { Company } from "@/pages/Admin";
@@ -12,46 +13,8 @@ export interface User {
   company_id?: string;
 }
 
-// Predefined users
-const predefinedUsers: Record<string, User> = {
-  "admin@example.com": {
-    email: "admin@example.com",
-    role: "admin"
-  },
-  "empresa@example.com": {
-    email: "empresa@example.com",
-    role: "user"
-  },
-  "ADMIN": {
-    email: "ADMIN",
-    role: "admin"
-  }
-};
-
-// Predefined passwords
-const predefinedPasswords: Record<string, string> = {
-  "admin@example.com": "admin123",
-  "empresa@example.com": "empresa123",
-  "ADMIN": "ADMIN123"
-};
-
 // Storage key for current user
 const USER_STORAGE_KEY = "current-user";
-
-// Assign token to predefined company
-predefinedUsers["empresa@example.com"].company_id = "1";
-predefinedUsers["empresa@example.com"].token = "empresa-demo-token-123";
-
-// Predefined companies for fallback mode
-const predefinedCompanies: Company[] = [
-  {
-    id: "1",
-    name: "Empresa Demo",
-    token: "empresa-demo-token-123",
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString()
-  }
-];
 
 export const AuthService = {
   // Iniciar sesión
@@ -59,25 +22,59 @@ export const AuthService = {
     try {
       console.log(`Intentando iniciar sesión con email: ${email}`);
       
-      // Verificar si el usuario existe
-      if (!predefinedUsers[email]) {
-        console.log("Usuario no encontrado");
-        return { success: false, error: "Usuario no encontrado" };
+      // Using Supabase authentication
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password
+      });
+      
+      if (error) {
+        console.error("Error en inicio de sesión:", error);
+        return { success: false, error: error.message };
       }
       
-      // Verificar contraseña
-      if (predefinedPasswords[email] !== password) {
-        console.log("Contraseña incorrecta");
-        return { success: false, error: "Contraseña incorrecta" };
+      if (!data || !data.user) {
+        console.error("No se obtuvo usuario después del inicio de sesión");
+        return { success: false, error: "Error al obtener información de usuario" };
       }
       
-      console.log("Credenciales correctas, guardando en localStorage");
+      // Fetch profile to get role and company_id
+      const { data: profileData, error: profileError } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', data.user.id)
+        .single();
+        
+      if (profileError) {
+        console.error("Error al obtener perfil:", profileError);
+        return { success: false, error: profileError.message };
+      }
       
-      // Guardar usuario en localStorage
-      localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(predefinedUsers[email]));
+      // Create user object
+      const user: User = {
+        email: data.user.email || '',
+        role: profileData.role as UserRole,
+        company_id: profileData.company_id
+      };
+      
+      // If the user has a company, get the token
+      if (user.company_id) {
+        const { data: companyData } = await supabase
+          .from('empresas')
+          .select('token')
+          .eq('id', user.company_id)
+          .single();
+          
+        if (companyData) {
+          user.token = companyData.token;
+        }
+      }
+      
+      // Save user in localStorage
+      localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(user));
       
       toast.success("Inicio de sesión exitoso");
-      return { success: true, user: predefinedUsers[email] };
+      return { success: true, user };
     } catch (error: any) {
       console.error("Error en login:", error);
       return { success: false, error: error.message || "Error desconocido en login" };
@@ -87,6 +84,10 @@ export const AuthService = {
   // Cerrar sesión
   logout: async () => {
     try {
+      // Sign out from Supabase
+      await supabase.auth.signOut();
+      
+      // Remove from localStorage
       localStorage.removeItem(USER_STORAGE_KEY);
       toast.success("Sesión cerrada correctamente");
       return { success: true };
@@ -99,8 +100,8 @@ export const AuthService = {
   // Verificar si hay un usuario conectado
   isLoggedIn: async () => {
     try {
-      const userJson = localStorage.getItem(USER_STORAGE_KEY);
-      return !!userJson;
+      const { data } = await supabase.auth.getSession();
+      return !!data.session;
     } catch (error) {
       console.error("Error al verificar sesión:", error);
       return false;
@@ -110,12 +111,18 @@ export const AuthService = {
   // Verificar si el usuario es administrador
   isAdmin: async () => {
     try {
-      const userJson = localStorage.getItem(USER_STORAGE_KEY);
-      if (!userJson) return false;
+      // First check if the user is logged in via Supabase
+      const { data } = await supabase.auth.getSession();
+      if (!data.session) return false;
       
-      const user: User = JSON.parse(userJson);
-      // Verify specifically that the user is admin@example.com
-      return user.email === "admin@example.com";
+      // Then check if the user has admin role in the profiles table
+      const { data: profileData } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', data.session.user.id)
+        .single();
+        
+      return profileData?.role === 'admin';
     } catch (error) {
       console.error("Error al verificar rol de administrador:", error);
       return false;
@@ -139,37 +146,27 @@ export const AuthService = {
   getCompanies: async (): Promise<Company[]> => {
     try {
       console.log("Obteniendo empresas...");
-      const currentUser = AuthService.getCurrentUser();
       
-      // If the current user is not admin@example.com, return empty array
-      if (currentUser?.email !== "admin@example.com") {
-        console.log("Usuario no autorizado para ver empresas");
-        return [];
-      }
-      
-      // Get companies from Supabase "empresas" table (created in our SQL migration)
+      // Get companies from Supabase "empresas" table
       const { data, error } = await supabase
         .from('empresas')
         .select('*');
         
       if (error) {
-        console.error("Error al obtener empresas de Supabase (empresas):", error);
+        console.error("Error al obtener empresas:", error);
         throw error;
       }
       
       if (data && data.length > 0) {
-        console.log("Empresas obtenidas de Supabase (empresas):", data);
+        console.log("Empresas obtenidas:", data);
         return data;
       }
       
-      // Fallback to predefined companies if no data found
-      console.log("No se encontraron empresas, usando datos predefinidos");
-      return predefinedCompanies;
+      console.log("No se encontraron empresas");
+      return [];
     } catch (error) {
       console.error("Error al obtener empresas:", error);
-      
-      // Return predefined companies in case of error
-      return predefinedCompanies;
+      return [];
     }
   },
   
@@ -189,12 +186,12 @@ export const AuthService = {
         .single();
         
       if (error) {
-        console.error("Error al añadir empresa a 'empresas':", error);
+        console.error("Error al añadir empresa:", error);
         throw error;
       }
       
       if (data) {
-        console.log("Empresa añadida en 'empresas':", data);
+        console.log("Empresa añadida:", data);
         return data;
       }
       
@@ -205,7 +202,7 @@ export const AuthService = {
     }
   },
   
-  // Update company method - simplified to work only with 'empresas' table
+  // Update company method
   updateCompany: async (id: string, updates: Partial<Company>): Promise<Company> => {
     try {
       const { data, error } = await supabase
@@ -232,7 +229,7 @@ export const AuthService = {
     }
   },
   
-  // Delete company method - simplified to work only with 'empresas' table
+  // Delete company method
   deleteCompany: async (id: string): Promise<boolean> => {
     try {
       const { error } = await supabase
@@ -255,43 +252,18 @@ export const AuthService = {
   // Método para obtener perfiles
   getProfiles: async (): Promise<any[]> => {
     try {
-      // Try to get profiles from Supabase first
-      try {
-        const { data, error } = await supabase
-          .from('profiles')
-          .select('*');
+      // Get profiles from Supabase
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*, empresas:company_id(name)');
           
-        if (error) throw error;
-        
-        if (data && data.length > 0) {
-          console.log("Perfiles obtenidos de Supabase:", data);
-          return data;
-        }
-      } catch (supabaseError) {
-        console.error("Error al obtener perfiles de Supabase:", supabaseError);
+      if (error) {
+        console.error("Error al obtener perfiles:", error);
+        throw error;
       }
       
-      // Fallback to predefined profiles
-      return [
-        {
-          id: "1",
-          email: "admin@example.com",
-          first_name: "Admin",
-          last_name: "User",
-          company_id: null,
-          role: "admin",
-          created_at: new Date().toISOString()
-        },
-        {
-          id: "2",
-          email: "empresa@example.com",
-          first_name: "Empresa",
-          last_name: "Usuario",
-          company_id: "1",
-          role: "user",
-          created_at: new Date().toISOString()
-        }
-      ];
+      console.log("Perfiles obtenidos:", data);
+      return data || [];
     } catch (error) {
       console.error("Error fetching profiles:", error);
       return [];
