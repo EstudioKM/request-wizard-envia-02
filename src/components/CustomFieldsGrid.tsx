@@ -9,6 +9,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/components/ui/use-toast';
 import { http } from '@/lib/http-client';
+import { toast } from "sonner";
 
 interface CustomField {
   id: number;
@@ -116,12 +117,21 @@ const CustomFieldsGrid: React.FC<CustomFieldsGridProps> = ({
     setIsSaving(true);
     
     try {
-      await http.post(`https://app.estudiokm.com.ar/api/accounts/bot_fields/${selectedField.id}`, 
+      // Get the token from localStorage
+      const token = localStorage.getItem('estudio-km-token');
+      
+      if (!token) {
+        throw new Error('No token available. Please log in again.');
+      }
+      
+      console.log(`Saving value for field ${selectedField.id} with token: ${token.substring(0, 10)}...`);
+      
+      await http.post(`/api-proxy/api/accounts/bot_fields/${selectedField.id}`, 
         `value=${encodeURIComponent(editedValue)}`,
         {
           headers: {
             'accept': 'application/json',
-            'X-ACCESS-TOKEN': '1330256.GzFpRpZKULHhFTun91Siftf93toXQImohKLCW75',
+            'x-access-token': token,
             'Content-Type': 'application/x-www-form-urlencoded'
           }
         }
