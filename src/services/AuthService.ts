@@ -115,7 +115,8 @@ export const AuthService = {
       if (!userJson) return false;
       
       const user: User = JSON.parse(userJson);
-      return user.role === "admin";
+      // Verify specifically that the user is admin@example.com
+      return user.email === "admin@example.com";
     } catch (error) {
       console.error("Error al verificar rol de administrador:", error);
       return false;
@@ -139,8 +140,33 @@ export const AuthService = {
   getCompanies: async (): Promise<Company[]> => {
     try {
       console.log("Obteniendo empresas...");
+      const currentUser = AuthService.getCurrentUser();
       
-      // Use predefined companies directly instead of trying Supabase
+      // If the current user is not admin@example.com, return empty array
+      if (currentUser?.email !== "admin@example.com") {
+        console.log("Usuario no autorizado para ver empresas");
+        return [];
+      }
+      
+      // Try to get companies from Supabase
+      try {
+        const { data, error } = await supabase
+          .from('companies')
+          .select('*');
+          
+        if (error) {
+          throw error;
+        }
+        
+        if (data && data.length > 0) {
+          console.log("Empresas obtenidas de Supabase:", data);
+          return data;
+        }
+      } catch (supabaseError) {
+        console.error("Error al obtener empresas de Supabase:", supabaseError);
+      }
+      
+      // Fallback to predefined companies if Supabase fails or returns no data
       console.log("Usando empresas predefinidas");
       return predefinedCompanies;
       
@@ -155,7 +181,28 @@ export const AuthService = {
   // Resto de métodos simplificados para evitar problemas con Supabase
   addCompany: async (company: Omit<Company, "id" | "created_at">): Promise<Company> => {
     try {
-      // Simulación de añadir una empresa
+      // Attempt to add company to Supabase first
+      try {
+        const { data, error } = await supabase
+          .from('companies')
+          .insert({
+            name: company.name,
+            token: company.token
+          })
+          .select()
+          .single();
+          
+        if (error) throw error;
+        
+        if (data) {
+          console.log("Empresa añadida en Supabase:", data);
+          return data;
+        }
+      } catch (supabaseError) {
+        console.error("Error al añadir empresa en Supabase:", supabaseError);
+      }
+      
+      // Fallback: Simulate adding a company
       const newCompany: Company = {
         id: crypto.randomUUID(),
         name: company.name,
@@ -173,7 +220,26 @@ export const AuthService = {
   
   updateCompany: async (id: string, updates: Partial<Company>): Promise<Company> => {
     try {
-      // Simulación de actualizar una empresa
+      // Try to update in Supabase first
+      try {
+        const { data, error } = await supabase
+          .from('companies')
+          .update(updates)
+          .eq('id', id)
+          .select()
+          .single();
+          
+        if (error) throw error;
+        
+        if (data) {
+          console.log("Empresa actualizada en Supabase:", data);
+          return data;
+        }
+      } catch (supabaseError) {
+        console.error("Error al actualizar empresa en Supabase:", supabaseError);
+      }
+      
+      // Fallback: Simulate updating a company
       const updatedCompany: Company = {
         ...predefinedCompanies[0],
         ...updates,
@@ -190,7 +256,22 @@ export const AuthService = {
   
   deleteCompany: async (id: string): Promise<boolean> => {
     try {
-      // Simulación de eliminar una empresa
+      // Try to delete from Supabase first
+      try {
+        const { error } = await supabase
+          .from('companies')
+          .delete()
+          .eq('id', id);
+          
+        if (error) throw error;
+        
+        console.log("Empresa eliminada de Supabase");
+        return true;
+      } catch (supabaseError) {
+        console.error("Error al eliminar empresa de Supabase:", supabaseError);
+      }
+      
+      // Fallback: Simulate deleting a company
       return true;
     } catch (error) {
       console.error("Error al eliminar empresa:", error);
@@ -201,6 +282,23 @@ export const AuthService = {
   // Método simplificado para obtener perfiles
   getProfiles: async (): Promise<any[]> => {
     try {
+      // Try to get profiles from Supabase first
+      try {
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('*');
+          
+        if (error) throw error;
+        
+        if (data && data.length > 0) {
+          console.log("Perfiles obtenidos de Supabase:", data);
+          return data;
+        }
+      } catch (supabaseError) {
+        console.error("Error al obtener perfiles de Supabase:", supabaseError);
+      }
+      
+      // Fallback to predefined profiles
       return [
         {
           id: "1",

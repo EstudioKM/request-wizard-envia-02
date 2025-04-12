@@ -5,6 +5,7 @@ import AdminLayout from '@/components/admin/AdminLayout';
 import CompanyList from '@/components/admin/CompanyList';
 import UserList from '@/components/admin/UserList';
 import { AuthService } from '@/services/AuthService';
+import { useNavigate } from 'react-router-dom';
 
 // Define our types to match those expected by the components
 export type Company = {
@@ -31,17 +32,30 @@ const Admin = () => {
   const [isLoadingCompanies, setIsLoadingCompanies] = useState(true);
   const [isLoadingProfiles, setIsLoadingProfiles] = useState(true);
   const [currentTab, setCurrentTab] = useState<'companies' | 'users'>('companies');
+  const navigate = useNavigate();
   
   useEffect(() => {
-    console.log("Admin component mounted, loading data...");
-    loadCompanies();
-    loadProfiles();
-  }, []);
+    const checkAccess = async () => {
+      const currentUser = AuthService.getCurrentUser();
+      
+      if (!currentUser || currentUser.email !== "admin@example.com") {
+        toast.error("Solo admin@example.com tiene acceso a esta página");
+        navigate('/');
+        return;
+      }
+      
+      console.log("Admin component mounted, loading data...");
+      loadCompanies();
+      loadProfiles();
+    };
+    
+    checkAccess();
+  }, [navigate]);
   
   const loadCompanies = async () => {
     setIsLoadingCompanies(true);
     try {
-      // Get companies from AuthService
+      // Get companies from AuthService (which now tries Supabase first)
       const companiesData = await AuthService.getCompanies();
       console.log("Empresas cargadas:", companiesData);
       
@@ -64,7 +78,7 @@ const Admin = () => {
   const loadProfiles = async () => {
     setIsLoadingProfiles(true);
     try {
-      // Load profiles using the mock data from AuthService
+      // Load profiles using AuthService (which now tries Supabase first)
       const profilesData = await AuthService.getProfiles();
       
       if (profilesData) {
