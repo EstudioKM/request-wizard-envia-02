@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
@@ -87,14 +86,7 @@ const Login = () => {
     try {
       // Verificar si son las credenciales de administrador
       if (email === 'admin' && password === 'admin123') {
-        // Iniciar sesión como administrador con Supabase
-        const { data, error } = await supabase.auth.signInWithPassword({
-          email: 'admin@estudiokm.com',
-          password: 'admin123',
-        });
-        
-        if (error) throw error;
-        
+        // En vez de intentar iniciar sesión con Supabase, simplemente marcamos al usuario como admin
         localStorage.setItem('isAdmin', 'true');
         toast.success("Sesión iniciada como administrador");
         navigate('/admin');

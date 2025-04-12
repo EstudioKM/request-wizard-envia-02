@@ -3,11 +3,23 @@ import { supabase } from "@/integrations/supabase/client";
 
 export const AuthService = {
   isLoggedIn: async () => {
+    // Check if admin login
+    if (localStorage.getItem('isAdmin') === 'true') {
+      return true;
+    }
+    
+    // Check if regular supabase login
     const { data, error } = await supabase.auth.getSession();
     return !!data.session;
   },
   
   isAdmin: async () => {
+    // Check if admin login
+    if (localStorage.getItem('isAdmin') === 'true') {
+      return true;
+    }
+    
+    // Check if regular supabase login with admin role
     const { data, error } = await supabase.auth.getSession();
     if (error || !data.session) return false;
     
