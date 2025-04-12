@@ -18,6 +18,7 @@ const AdminRoute: React.FC<AdminRouteProps> = ({ children }) => {
         setIsLoading(true);
         
         const adminStatus = await AuthService.isAdmin();
+        console.log("Estado de administrador:", adminStatus);
         setIsAdmin(adminStatus);
       } catch (error) {
         console.error("Error al verificar estado de administrador:", error);

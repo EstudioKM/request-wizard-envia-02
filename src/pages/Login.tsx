@@ -42,10 +42,13 @@ const Login = () => {
     setIsLoading(true);
     
     try {
+      console.log("Iniciando proceso de login");
       const result = await AuthService.login(email, password);
       
       if (result.success) {
+        console.log("Login exitoso, verificando si es admin");
         const isAdmin = await AuthService.isAdmin();
+        console.log("Es admin:", isAdmin);
         navigate(isAdmin ? '/admin' : '/dashboard');
       } else {
         toast.error("Credenciales incorrectas: " + (result.error || "Verifica tu email y contraseña"));

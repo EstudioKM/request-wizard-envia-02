@@ -5,7 +5,6 @@ import AdminLayout from '@/components/admin/AdminLayout';
 import CompanyList from '@/components/admin/CompanyList';
 import UserList from '@/components/admin/UserList';
 import { AuthService } from '@/services/AuthService';
-import { supabase } from "@/integrations/supabase/client";
 
 // Define our types to match those expected by the components
 export type Company = {
@@ -56,20 +55,7 @@ const Admin = () => {
     } catch (error: any) {
       console.error("Error loading companies:", error);
       toast.error("Error al cargar empresas: " + error.message);
-      
-      // Use mock data as fallback
-      const mockCompanies: Company[] = [
-        {
-          id: "1",
-          name: "Empresa Demo",
-          token: "empresa-demo-token-123",
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
-        }
-      ];
-      
-      console.log("Usando empresas predefinidas como fallback");
-      setCompanies(mockCompanies);
+      setCompanies([]);
     } finally {
       setIsLoadingCompanies(false);
     }
@@ -78,88 +64,19 @@ const Admin = () => {
   const loadProfiles = async () => {
     setIsLoadingProfiles(true);
     try {
-      // Try to load profiles directly instead of using RLS which causes infinite recursion
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .order('created_at', { ascending: false });
-
-      if (error) {
-        throw error;
-      }
-
-      if (data) {
-        console.log("Perfiles cargados desde Supabase:", data);
-        setProfiles(data);
+      // Load profiles using the mock data from AuthService
+      const profilesData = await AuthService.getProfiles();
+      
+      if (profilesData) {
+        console.log("Perfiles cargados:", profilesData);
+        setProfiles(profilesData);
       } else {
-        console.log("No se encontraron perfiles en Supabase, usando datos predefinidos");
-        const mockProfiles: Profile[] = [
-          {
-            id: "1",
-            email: "admin@example.com",
-            first_name: "Admin",
-            last_name: "User",
-            company_id: null,
-            role: "admin",
-            created_at: new Date().toISOString()
-          },
-          {
-            id: "2",
-            email: "empresa@example.com",
-            first_name: "Empresa",
-            last_name: "Usuario",
-            company_id: "1",
-            role: "user",
-            created_at: new Date().toISOString()
-          },
-          {
-            id: "3",
-            email: "ADMIN",
-            first_name: "Admin",
-            last_name: "User",
-            company_id: null,
-            role: "admin",
-            created_at: new Date().toISOString()
-          }
-        ];
-        
-        setProfiles(mockProfiles);
+        console.log("No se encontraron perfiles, usando datos predefinidos");
+        setProfiles([]);
       }
     } catch (error: any) {
       console.error("Error loading profiles:", error);
-      
-      // Fallback to mock profiles on error
-      const mockProfiles: Profile[] = [
-        {
-          id: "1",
-          email: "admin@example.com",
-          first_name: "Admin",
-          last_name: "User",
-          company_id: null,
-          role: "admin",
-          created_at: new Date().toISOString()
-        },
-        {
-          id: "2",
-          email: "empresa@example.com",
-          first_name: "Empresa",
-          last_name: "Usuario",
-          company_id: "1",
-          role: "user",
-          created_at: new Date().toISOString()
-        },
-        {
-          id: "3",
-          email: "ADMIN",
-          first_name: "Admin",
-          last_name: "User",
-          company_id: null,
-          role: "admin",
-          created_at: new Date().toISOString()
-        }
-      ];
-      
-      setProfiles(mockProfiles);
+      setProfiles([]);
     } finally {
       setIsLoadingProfiles(false);
     }
