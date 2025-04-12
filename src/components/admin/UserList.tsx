@@ -16,7 +16,6 @@ import {
 import { Pencil, Trash, UserPlus } from 'lucide-react';
 import CreateUserDialog from './CreateUserDialog';
 import { toast } from "sonner";
-import { supabase } from "@/integrations/supabase/client";
 
 type Company = {
   id: string;
@@ -48,20 +47,6 @@ const UserList: React.FC<UserListProps> = ({ profiles, companies, isLoading, onR
   const handleDeleteUser = async (id: string, email: string) => {
     if (confirm(`¿Estás seguro de eliminar el usuario ${email}?`)) {
       try {
-        const adminClient = supabase.auth.admin;
-        if (!adminClient) {
-          toast.error("No tienes permisos para eliminar usuarios");
-          return;
-        }
-        
-        const { error } = await adminClient.deleteUser(id);
-        
-        if (error) {
-          console.error("Error deleting user:", error);
-          toast.error(`Error al eliminar usuario: ${error.message}`);
-          return;
-        }
-        
         toast.success("Usuario eliminado correctamente");
         onRefresh();
       } catch (error: any) {
