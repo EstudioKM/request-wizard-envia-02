@@ -1,42 +1,40 @@
 
 import React, { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import CustomFieldsEditor from "@/components/CustomFieldsEditor";
-import { Button } from '@/components/ui/button';
-import { LogOut, Settings } from 'lucide-react';
-import { http } from '@/lib/http-client';
-import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { AuthService } from '@/services/AuthService';
-import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
+import { useNavigate } from 'react-router-dom';
 
 const Dashboard = () => {
   const navigate = useNavigate();
-  const [isAdmin, setIsAdmin] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
+  const [user, setUser] = useState(AuthService.getCurrentUser());
+  const [company, setCompany] = useState<{ id: string; name: string; token: string } | null>(null);
   
   useEffect(() => {
-    // Check if token exists, if not redirect to login
-    const token = localStorage.getItem('estudio-km-token');
     const checkAuth = async () => {
-      setIsLoading(true);
-      // Check if admin
-      const adminStatus = await AuthService.isAdmin();
-      setIsAdmin(adminStatus);
-      
-      if (!token && !adminStatus) {
+      const isLoggedIn = await AuthService.isLoggedIn();
+      if (!isLoggedIn) {
         navigate('/');
-      } else if (token) {
-        // Set token globally for all requests
-        http.defaultOptions.headers = {
-          ...http.defaultOptions.headers,
-          'x-access-token': token
-        };
-        
-        // Verificar que el token se haya establecido correctamente
-        console.log('Token establecido en headers:', http.defaultOptions.headers);
-        toast.success("Sesión iniciada con token: " + token.substring(0, 10) + "...");
+        return;
       }
-      setIsLoading(false);
+      
+      const currentUser = AuthService.getCurrentUser();
+      if (!currentUser) {
+        navigate('/');
+        return;
+      }
+      
+      setUser(currentUser);
+      
+      // Si el usuario tiene un company_id, buscar los detalles de la empresa
+      if (currentUser.company_id) {
+        const companies = AuthService.getCompanies();
+        const userCompany = companies.find(c => c.id === currentUser.company_id);
+        if (userCompany) {
+          setCompany(userCompany);
+        }
+      }
     };
     
     checkAuth();
@@ -47,72 +45,76 @@ const Dashboard = () => {
     navigate('/');
   };
   
-  const goToAdmin = () => {
-    navigate('/admin');
-  };
-
-  if (isLoading) {
-    return (
-      <div className="min-h-screen w-full flex items-center justify-center bg-background">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
-      </div>
-    );
-  }
-
   return (
-    <div className="min-h-screen w-full bg-background">
-      <div className="flex-1 p-6">
-        <header className="mb-8 flex justify-between items-center">
-          <div>
-            <h1 className="text-3xl font-bold">
-              <span className="text-gray-700">Hola,</span> 
-              <span className="text-primary"> Estudio</span>
-            </h1>
-            <p className="text-gray-500 mt-2">
-              Esta es tu plataforma personalizada de Estudio KM.
-            </p>
-          </div>
+    <div className="min-h-screen bg-gray-50 p-6">
+      <div className="max-w-7xl mx-auto">
+        <div className="flex justify-between items-center mb-8">
+          <h1 className="text-2xl font-bold">Panel de Usuario</h1>
+          <Button onClick={handleLogout} variant="outline">Cerrar Sesión</Button>
+        </div>
+        
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Información de Usuario</CardTitle>
+              <CardDescription>Detalles de tu cuenta</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-2">
+              <div>
+                <span className="font-semibold">Email:</span> {user?.email}
+              </div>
+              <div>
+                <span className="font-semibold">Rol:</span> {user?.role === 'admin' ? 'Administrador' : 'Usuario'}
+              </div>
+              {company && (
+                <div>
+                  <span className="font-semibold">Empresa:</span> {company.name}
+                </div>
+              )}
+              {user?.token && (
+                <div className="space-y-1">
+                  <span className="font-semibold">Token de acceso:</span>
+                  <div className="px-3 py-2 bg-gray-100 rounded font-mono text-sm break-all">
+                    {user.token}
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
           
-          <div className="flex gap-2">
-            {isAdmin && (
-              <Button 
-                variant="default" 
-                onClick={goToAdmin}
-                className="flex items-center gap-2"
-              >
-                <Settings size={16} />
-                Panel de Admin
-              </Button>
-            )}
-            
-            <Button 
-              variant="outline" 
-              onClick={handleLogout}
-              className="flex items-center gap-2"
-            >
-              <LogOut size={16} />
-              Cerrar sesión
-            </Button>
-          </div>
-        </header>
-        
-        {isAdmin && (
-          <div className="mb-8 p-4 bg-amber-50 border border-amber-200 rounded-lg">
-            <h2 className="text-lg font-medium text-amber-800 mb-2">Acceso de Administrador</h2>
-            <p className="text-amber-700 mb-4">
-              Has iniciado sesión como administrador. Puedes acceder al panel de administración para gestionar empresas, tokens y usuarios.
-            </p>
-            <Button onClick={goToAdmin} className="bg-amber-600 hover:bg-amber-700 flex items-center gap-2">
-              <Settings size={16} />
-              Ir al Panel de Administración
-            </Button>
-          </div>
-        )}
-        
-        <div className="max-w-6xl mx-auto">
-          <div className="app-card p-6">
-            <CustomFieldsEditor />
-          </div>
+          <Card>
+            <CardHeader>
+              <CardTitle>Acciones Disponibles</CardTitle>
+              <CardDescription>Funcionalidades según tu rol</CardDescription>
+            </CardHeader>
+            <CardContent>
+              {user?.role === 'admin' ? (
+                <div className="space-y-4">
+                  <p>Como administrador, puedes:</p>
+                  <ul className="list-disc pl-5 space-y-2">
+                    <li>Gestionar empresas y tokens</li>
+                    <li>Administrar usuarios</li>
+                    <li>Ver estadísticas del sistema</li>
+                  </ul>
+                  <Button 
+                    className="w-full mt-4"
+                    onClick={() => navigate('/admin')}
+                  >
+                    Ir al Panel de Administración
+                  </Button>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  <p>Como usuario de empresa, puedes:</p>
+                  <ul className="list-disc pl-5 space-y-2">
+                    <li>Ver información de tu empresa</li>
+                    <li>Utilizar tu token para acceder a los recursos</li>
+                    <li>Gestionar tus datos personales</li>
+                  </ul>
+                </div>
+              )}
+            </CardContent>
+          </Card>
         </div>
       </div>
     </div>

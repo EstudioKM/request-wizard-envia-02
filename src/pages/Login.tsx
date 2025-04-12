@@ -17,20 +17,10 @@ const Login = () => {
   useEffect(() => {
     const checkAuth = async () => {
       try {
-        // Verificación rápida por localStorage primero
-        if (localStorage.getItem('isAdmin') === 'true') {
-          console.log("Admin verificado por localStorage");
-          navigate('/admin');
-          return;
-        }
-        
-        console.log("Verificando autenticación...");
         const isLoggedIn = await AuthService.isLoggedIn();
-        console.log("Usuario autenticado:", isLoggedIn);
         
         if (isLoggedIn) {
           const isAdmin = await AuthService.isAdmin();
-          console.log("Es administrador:", isAdmin);
           navigate(isAdmin ? '/admin' : '/dashboard');
         }
       } catch (error) {
@@ -52,21 +42,12 @@ const Login = () => {
     setIsLoading(true);
     
     try {
-      console.log("Intentando iniciar sesión con:", email);
-      const result = await AuthService.loginAsAdmin(email, password);
+      const result = await AuthService.login(email, password);
       
       if (result.success) {
-        // Verificar si es admin para redirigir usando localStorage primero para evitar bucles
-        if (localStorage.getItem('isAdmin') === 'true') {
-          console.log("Login exitoso. Es administrador por localStorage");
-          navigate('/admin');
-        } else {
-          const isAdmin = await AuthService.isAdmin();
-          console.log("Login exitoso. Es administrador:", isAdmin);
-          navigate(isAdmin ? '/admin' : '/dashboard');
-        }
+        const isAdmin = await AuthService.isAdmin();
+        navigate(isAdmin ? '/admin' : '/dashboard');
       } else {
-        console.error("Error en login:", result.error);
         toast.error("Credenciales incorrectas: " + (result.error || "Verifica tu email y contraseña"));
       }
     } catch (error: any) {
@@ -118,10 +99,10 @@ const Login = () => {
         <CardFooter className="text-center text-sm">
           <div className="w-full text-center">
             <p className="text-xs text-gray-500 mt-4">
-              Usuario admin: admin@example.com / Contraseña: admin123
+              Usuario administrador: admin@example.com / Contraseña: admin123
             </p>
             <p className="text-xs text-gray-500 mt-1">
-              Superadmin: holaestudiokm@gmail.com
+              Usuario empresa: empresa@example.com / Contraseña: empresa123
             </p>
           </div>
         </CardFooter>

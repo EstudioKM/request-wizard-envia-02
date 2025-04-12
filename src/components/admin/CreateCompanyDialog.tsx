@@ -17,7 +17,7 @@ import {
 } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { Plus } from 'lucide-react';
-import { getAdminClient } from "@/integrations/supabase/client";
+import { AuthService } from '@/services/AuthService';
 
 const companySchema = z.object({
   name: z.string().min(3, "El nombre debe tener al menos 3 caracteres"),
@@ -47,24 +47,13 @@ const CreateCompanyDialog: React.FC<CreateCompanyDialogProps> = ({
     try {
       console.log("Creating company with values:", values);
       
-      const adminClient = getAdminClient();
-      console.log("Admin client created for company creation");
+      // Usamos el nuevo servicio para crear empresas
+      AuthService.addCompany({
+        name: values.name,
+        token: values.token,
+      });
       
-      // Make sure we're using the admin client for inserting the company
-      const { data, error } = await adminClient
-        .from('companies')
-        .insert({
-          name: values.name,
-          token: values.token,
-        })
-        .select();
-        
-      if (error) {
-        console.error("Error creating company:", error);
-        throw error;
-      }
-      
-      console.log("Company created successfully:", data);
+      console.log("Company created successfully");
       toast.success("Empresa creada exitosamente");
       form.reset();
       onOpenChange(false);

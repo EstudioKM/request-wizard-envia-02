@@ -16,12 +16,12 @@ import {
 import { toast } from "sonner";
 import { Key, Pencil, Trash } from 'lucide-react';
 import CreateCompanyDialog from './CreateCompanyDialog';
+import { AuthService } from '@/services/AuthService';
 
 type Company = {
   id: string;
   name: string;
   token: string;
-  created_at: string;
 };
 
 interface CompanyListProps {
@@ -32,6 +32,24 @@ interface CompanyListProps {
 
 const CompanyList: React.FC<CompanyListProps> = ({ companies, isLoading, onRefresh }) => {
   const [companyModalOpen, setCompanyModalOpen] = useState(false);
+  
+  const handleDeleteCompany = async (id: string) => {
+    if (confirm("¿Estás seguro de eliminar esta empresa?")) {
+      try {
+        const result = AuthService.deleteCompany(id);
+        
+        if (result) {
+          toast.success("Empresa eliminada correctamente");
+          onRefresh();
+        } else {
+          toast.error("Error al eliminar la empresa");
+        }
+      } catch (error: any) {
+        console.error("Error deleting company:", error);
+        toast.error("Error: " + error.message);
+      }
+    }
+  };
   
   return (
     <div className="space-y-4">
@@ -99,7 +117,12 @@ const CompanyList: React.FC<CompanyListProps> = ({ companies, isLoading, onRefre
                         <Button variant="outline" size="sm" className="h-8 w-8 p-0">
                           <Pencil size={14} />
                         </Button>
-                        <Button variant="destructive" size="sm" className="h-8 w-8 p-0">
+                        <Button 
+                          variant="destructive" 
+                          size="sm" 
+                          className="h-8 w-8 p-0"
+                          onClick={() => handleDeleteCompany(company.id)}
+                        >
                           <Trash size={14} />
                         </Button>
                       </div>

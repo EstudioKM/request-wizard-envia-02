@@ -1,16 +1,15 @@
 
 import React, { useEffect, useState } from 'react';
-import { getAdminClient } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import AdminLayout from '@/components/admin/AdminLayout';
 import CompanyList from '@/components/admin/CompanyList';
 import UserList from '@/components/admin/UserList';
+import { AuthService } from '@/services/AuthService';
 
 type Company = {
   id: string;
   name: string;
   token: string;
-  created_at: string;
 };
 
 type Profile = {
@@ -20,12 +19,6 @@ type Profile = {
   last_name: string | null;
   company_id: string | null;
   role: string;
-  created_at: string;
-};
-
-type AuthUser = {
-  id: string;
-  email?: string;
 };
 
 const Admin = () => {
@@ -44,25 +37,12 @@ const Admin = () => {
   const loadCompanies = async () => {
     setIsLoadingCompanies(true);
     try {
-      console.log("Loading companies...");
-      const adminClient = getAdminClient();
-      console.log("Admin client created for companies");
-      
-      const { data, error } = await adminClient
-        .from('companies')
-        .select('*')
-        .order('created_at', { ascending: false });
-        
-      if (error) {
-        console.error("Error loading companies:", error);
-        toast.error("Error al cargar empresas: " + error.message);
-      } else {
-        console.log("Companies loaded successfully:", data);
-        setCompanies(data || []);
-      }
+      // Usamos el nuevo servicio para obtener empresas
+      const companiesData = AuthService.getCompanies();
+      setCompanies(companiesData);
     } catch (error: any) {
-      console.error("Exception loading companies:", error);
-      toast.error("Error inesperado al cargar empresas");
+      console.error("Error loading companies:", error);
+      toast.error("Error al cargar empresas: " + error.message);
     } finally {
       setIsLoadingCompanies(false);
     }
@@ -71,65 +51,30 @@ const Admin = () => {
   const loadProfiles = async () => {
     setIsLoadingProfiles(true);
     try {
-      console.log("Loading profiles...");
-      const adminClient = getAdminClient();
-      console.log("Admin client created for profiles");
-      
-      const authUsers: { users: AuthUser[] } = { users: [] };
-      
-      try {
-        const { data: authUsersData, error: authError } = await adminClient.auth.admin.listUsers();
-        
-        if (authError) {
-          console.error("Error loading auth users:", authError);
-          toast.error("Error al cargar usuarios de autenticación: " + authError.message);
-        } else if (authUsersData) {
-          Object.assign(authUsers, authUsersData);
+      // Por ahora, solo tenemos los usuarios predefinidos
+      const mockProfiles: Profile[] = [
+        {
+          id: "1",
+          email: "admin@example.com",
+          first_name: "Admin",
+          last_name: "User",
+          company_id: null,
+          role: "admin"
+        },
+        {
+          id: "2",
+          email: "empresa@example.com",
+          first_name: "Empresa",
+          last_name: "Usuario",
+          company_id: "1",
+          role: "user"
         }
-      } catch (authErr: any) {
-        console.error("Exception loading auth users:", authErr);
-      }
+      ];
       
-      const { data: profilesData, error: profilesError } = await adminClient
-        .from('profiles')
-        .select('*')
-        .order('created_at', { ascending: false });
-        
-      if (profilesError) {
-        console.error("Error loading profiles:", profilesError);
-        toast.error("Error al cargar perfiles: " + profilesError.message);
-        return;
-      }
-      
-      console.log("Profiles loaded successfully:", profilesData);
-      
-      const profiles = profilesData || [];
-      
-      const combinedProfiles = profiles.map(profile => {
-        if (!profile || !profile.id) {
-          console.error("Invalid profile object:", profile);
-          return {
-            id: 'unknown',
-            email: 'error@example.com',
-            first_name: null,
-            last_name: null,
-            company_id: null,
-            role: 'unknown',
-            created_at: new Date().toISOString()
-          };
-        }
-        
-        const authUser = authUsers.users.find(u => u.id === profile.id);
-        return {
-          ...profile,
-          email: authUser?.email || profile.email || 'Sin email'
-        };
-      });
-      
-      setProfiles(combinedProfiles);
+      setProfiles(mockProfiles);
     } catch (error: any) {
-      console.error("Exception loading profiles:", error);
-      toast.error("Error inesperado al cargar usuarios: " + error.message);
+      console.error("Error loading profiles:", error);
+      toast.error("Error al cargar usuarios: " + error.message);
     } finally {
       setIsLoadingProfiles(false);
     }
@@ -148,7 +93,7 @@ const Admin = () => {
         />
       ) : (
         <UserList 
-          profiles={profiles} 
+          profiles={profiles}
           companies={companies}
           isLoading={isLoadingProfiles} 
           onRefresh={loadProfiles} 
