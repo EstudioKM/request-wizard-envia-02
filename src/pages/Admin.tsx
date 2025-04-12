@@ -44,10 +44,19 @@ const Admin = () => {
       // Obtener empresas de Supabase
       const companiesData = await AuthService.getCompanies();
       console.log("Empresas cargadas:", companiesData);
-      setCompanies(companiesData);
+      
+      if (companiesData && Array.isArray(companiesData)) {
+        setCompanies(companiesData);
+      } else {
+        // Si no hay datos o no es un array, establecer un array vacío
+        console.warn("No se encontraron empresas o el formato de datos es incorrecto");
+        setCompanies([]);
+      }
     } catch (error: any) {
       console.error("Error loading companies:", error);
       toast.error("Error al cargar empresas: " + error.message);
+      // En caso de error, establecer un array vacío
+      setCompanies([]);
     } finally {
       setIsLoadingCompanies(false);
     }

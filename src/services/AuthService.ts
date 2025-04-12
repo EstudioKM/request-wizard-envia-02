@@ -38,6 +38,17 @@ const USER_STORAGE_KEY = "current-user";
 predefinedUsers["empresa@example.com"].company_id = "1";
 predefinedUsers["empresa@example.com"].token = "empresa-demo-token-123";
 
+// Empresas predefinidas para modo fallback
+const predefinedCompanies: Company[] = [
+  {
+    id: "1",
+    name: "Empresa Demo",
+    token: "empresa-demo-token-123",
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString()
+  }
+];
+
 export const AuthService = {
   // Iniciar sesión
   login: async (email: string, password: string) => {
@@ -117,20 +128,34 @@ export const AuthService = {
   getCompanies: async (): Promise<Company[]> => {
     try {
       console.log("Obteniendo empresas de Supabase...");
+      
+      // Intentar obtener las empresas de Supabase
       const { data, error } = await supabase
         .from('companies')
-        .select('*');
+        .select('*')
+        .order('name', { ascending: true });
       
       if (error) {
         console.error("Error al obtener empresas de Supabase:", error);
-        throw error;
+        
+        // Si hay un error, devolver empresas predefinidas (modo fallback)
+        console.log("Usando empresas predefinidas como fallback");
+        return predefinedCompanies;
       }
       
       console.log("Empresas obtenidas con éxito:", data);
-      return data || [];
+      
+      // Si no hay datos, devolver un array vacío o las predefinidas
+      if (!data || data.length === 0) {
+        return predefinedCompanies;
+      }
+      
+      return data;
     } catch (error) {
       console.error("Error al obtener empresas:", error);
-      return [];
+      
+      // En caso de error, devolver las empresas predefinidas
+      return predefinedCompanies;
     }
   },
   
