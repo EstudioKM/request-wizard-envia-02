@@ -135,21 +135,41 @@ const Admin = () => {
       const adminClient = getAdminClient();
       console.log("Admin client created for profiles");
       
-      const { data, error } = await adminClient
+      const { data: authUsers, error: authError } = await adminClient.auth.admin.listUsers();
+      
+      if (authError) {
+        console.error("Error loading auth users:", authError);
+        toast.error("Error al cargar usuarios de autenticación: " + authError.message);
+        return;
+      }
+      
+      console.log("Auth users loaded successfully:", authUsers);
+      
+      const { data: profilesData, error: profilesError } = await adminClient
         .from('profiles')
         .select('*')
         .order('created_at', { ascending: false });
         
-      if (error) {
-        console.error("Error loading profiles:", error);
-        toast.error("Error al cargar usuarios: " + error.message);
-      } else {
-        console.log("Profiles loaded successfully:", data);
-        setProfiles(data || []);
+      if (profilesError) {
+        console.error("Error loading profiles:", profilesError);
+        toast.error("Error al cargar perfiles: " + profilesError.message);
+        return;
       }
+      
+      console.log("Profiles loaded successfully:", profilesData);
+      
+      const combinedProfiles = profilesData?.map(profile => {
+        const authUser = authUsers.users.find(u => u.id === profile.id);
+        return {
+          ...profile,
+          email: authUser?.email || profile.email || 'Sin email'
+        };
+      }) || [];
+      
+      setProfiles(combinedProfiles);
     } catch (error: any) {
       console.error("Exception loading profiles:", error);
-      toast.error("Error inesperado al cargar usuarios");
+      toast.error("Error inesperado al cargar usuarios: " + error.message);
     } finally {
       setIsLoadingProfiles(false);
     }
