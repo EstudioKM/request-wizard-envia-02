@@ -15,8 +15,8 @@ export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_ANON_KEY);
 // Add service role key for admin operations
 // This client should only be used in secure admin contexts
 export const getAdminClient = () => {
-  // Crear un cliente con rol de servicio (service_role)
-  const adminClient = createClient<Database>(
+  // Create a client with service role permissions
+  return createClient<Database>(
     SUPABASE_URL, 
     SUPABASE_SERVICE_ROLE_KEY, 
     {
@@ -27,6 +27,4 @@ export const getAdminClient = () => {
       }
     }
   );
-  
-  return adminClient;
 };

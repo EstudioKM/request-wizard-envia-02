@@ -210,7 +210,7 @@ const Admin = () => {
       const adminClient = getAdminClient();
       console.log("Admin client created for company creation");
       
-      // Asegúrate de que estás usando el cliente administrativo para insertar la empresa
+      // Make sure we're using the admin client for inserting the company
       const { data, error } = await adminClient
         .from('companies')
         .insert({
@@ -228,7 +228,7 @@ const Admin = () => {
       toast.success("Empresa creada exitosamente");
       companyForm.reset();
       setCompanyModalOpen(false);
-      await loadCompanies(); // Recargar empresas después de crear una nueva
+      await loadCompanies(); // Reload companies after creating a new one
     } catch (error: any) {
       console.error("Error details:", error);
       toast.error("Error al crear empresa: " + (error.message || "Error desconocido"));
