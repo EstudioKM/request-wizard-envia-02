@@ -136,6 +136,8 @@ const Admin = () => {
     try {
       console.log("Loading companies...");
       const adminClient = getAdminClient();
+      console.log("Admin client created, URL:", adminClient.supabaseUrl);
+      
       const { data, error } = await adminClient
         .from('companies')
         .select('*')
@@ -161,6 +163,8 @@ const Admin = () => {
     try {
       console.log("Loading profiles...");
       const adminClient = getAdminClient();
+      console.log("Admin client created for profiles, URL:", adminClient.supabaseUrl);
+      
       const { data, error } = await adminClient
         .from('profiles')
         .select('*')
@@ -187,7 +191,7 @@ const Admin = () => {
       console.log("Creating company with values:", values);
       
       const adminClient = getAdminClient();
-      console.log("Admin client created");
+      console.log("Admin client created for company creation");
       
       const { data, error } = await adminClient
         .from('companies')
