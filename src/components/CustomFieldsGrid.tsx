@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { memo } from 'react';
 import { PlusCircle, Edit, Tag, FileText, Calendar, Hash, CheckSquare, AlignLeft, ArrowUpDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
@@ -31,6 +31,51 @@ interface CustomFieldsGridProps {
   onAddField: () => void;
 }
 
+// Memoizamos los items de la tabla para evitar re-renders innecesarios
+const TableItem = memo(({ field, onClick, getTypeIcon, getTypeColor, getTypeLabel, truncateText }: { 
+  field: CustomField; 
+  onClick: () => void;
+  getTypeIcon: (type: string) => JSX.Element;
+  getTypeColor: (type: string) => string;
+  getTypeLabel: (type: string) => string;
+  truncateText: (text: any, maxLength?: number) => string;
+}) => (
+  <TableRow 
+    key={field.id} 
+    onClick={onClick} 
+    className="cursor-pointer hover:bg-gray-50 transition-colors"
+  >
+    <TableCell className="font-medium">
+      <div className="flex items-center gap-2">
+        {getTypeIcon(field.type)}
+        <span>{field.name}</span>
+        {field.required && (
+          <Badge variant="outline" className="text-xs bg-red-50 text-red-700 border-red-200">
+            Requerido
+          </Badge>
+        )}
+      </div>
+      {field.description && (
+        <p className="text-xs text-gray-500 mt-1">{truncateText(field.description, 60)}</p>
+      )}
+    </TableCell>
+    <TableCell>
+      <Badge className={`${getTypeColor(field.type)}`}>
+        {getTypeLabel(field.type)}
+      </Badge>
+    </TableCell>
+    <TableCell>
+      {field.hasValue ? (
+        <div className="max-w-md">
+          {truncateText(field.value)}
+        </div>
+      ) : (
+        <span className="text-gray-400 italic">Sin valor</span>
+      )}
+    </TableCell>
+  </TableRow>
+));
+
 const CustomFieldsGrid: React.FC<CustomFieldsGridProps> = ({ 
   fields, 
   onUpdate, 
@@ -43,7 +88,10 @@ const CustomFieldsGrid: React.FC<CustomFieldsGridProps> = ({
   const { toast } = useToast();
   
   // Sort fields by type for better organization
-  const sortedFields = [...fields].sort((a, b) => a.type.localeCompare(b.type));
+  const sortedFields = React.useMemo(() => 
+    [...fields].sort((a, b) => a.type.localeCompare(b.type)), 
+    [fields]
+  );
   
   const handleFieldUpdate = (updatedField: CustomField) => {
     const updatedFields = fields.map(field => 
@@ -175,40 +223,15 @@ const CustomFieldsGrid: React.FC<CustomFieldsGridProps> = ({
             </TableHeader>
             <TableBody>
               {sortedFields.map((field) => (
-                <TableRow 
-                  key={field.id} 
-                  onClick={() => handleFieldClick(field)} 
-                  className="cursor-pointer hover:bg-gray-50 transition-colors"
-                >
-                  <TableCell className="font-medium">
-                    <div className="flex items-center gap-2">
-                      {getTypeIcon(field.type)}
-                      <span>{field.name}</span>
-                      {field.required && (
-                        <Badge variant="outline" className="text-xs bg-red-50 text-red-700 border-red-200">
-                          Requerido
-                        </Badge>
-                      )}
-                    </div>
-                    {field.description && (
-                      <p className="text-xs text-gray-500 mt-1">{truncateText(field.description, 60)}</p>
-                    )}
-                  </TableCell>
-                  <TableCell>
-                    <Badge className={`${getTypeColor(field.type)}`}>
-                      {getTypeLabel(field.type)}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
-                    {field.hasValue ? (
-                      <div className="max-w-md">
-                        {truncateText(field.value)}
-                      </div>
-                    ) : (
-                      <span className="text-gray-400 italic">Sin valor</span>
-                    )}
-                  </TableCell>
-                </TableRow>
+                <TableItem 
+                  key={field.id}
+                  field={field}
+                  onClick={() => handleFieldClick(field)}
+                  getTypeIcon={getTypeIcon}
+                  getTypeColor={getTypeColor}
+                  getTypeLabel={getTypeLabel}
+                  truncateText={truncateText}
+                />
               ))}
             </TableBody>
           </Table>

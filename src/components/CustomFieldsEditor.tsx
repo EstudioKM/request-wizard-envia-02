@@ -13,7 +13,6 @@ import { Badge } from '@/components/ui/badge';
 import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from '@/components/ui/table';
 import { http } from '@/lib/http-client';
 import CustomFieldsGrid from './CustomFieldsGrid';
-import { MOCK_CUSTOM_FIELDS } from '@/data/mockData';
 
 interface CustomField {
   id: number;
@@ -148,12 +147,12 @@ const CustomFieldsEditor = () => {
     });
     
     try {
-      const chunkSize = 2;
+      // Aumentar el tamaño del chunk para procesar más campos en paralelo
+      const chunkSize = 5;
       
       for (let i = 0; i < fields.length; i += chunkSize) {
         const chunk = fields.slice(i, i + chunkSize);
-        
-        for (const field of chunk) {
+        const promises = chunk.map(async (field) => {
           try {
             let response;
             let success = false;
@@ -167,10 +166,7 @@ const CustomFieldsEditor = () => {
               });
               success = true;
             } catch (err) {
-              console.log(`Primer endpoint falló para campo ${field.id}, intentando con el segundo endpoint...`);
-              
-              await sleep(500);
-              
+              // Si falla el primer endpoint, intentar con el segundo sin espera adicional
               response = await http.get(`https://app.estudiokm.com.ar/api/accounts/custom_fields/name/${field.id}`, {
                 headers: {
                   'accept': 'application/json',
@@ -199,13 +195,20 @@ const CustomFieldsEditor = () => {
           } finally {
             completedCount++;
             setLoadingProgress(Math.round((completedCount / fields.length) * 100));
-            
-            await sleep(1000);
           }
           
-          setCustomFields([...updatedFields]);
-          setFilteredFields([...updatedFields]);
-        }
+          return null;
+        });
+        
+        // Esperar a que se completen todas las promesas del chunk
+        await Promise.all(promises);
+        
+        // Actualizar el estado después de cada chunk
+        setCustomFields([...updatedFields]);
+        setFilteredFields([...updatedFields]);
+        
+        // Reducir la espera entre chunks
+        await sleep(200);
       }
       
       const fieldsWithValues = updatedFields.filter(f => f.hasValue).length;
