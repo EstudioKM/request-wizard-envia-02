@@ -17,6 +17,13 @@ const Login = () => {
   useEffect(() => {
     const checkAuth = async () => {
       try {
+        // Verificación rápida por localStorage primero
+        if (localStorage.getItem('isAdmin') === 'true') {
+          console.log("Admin verificado por localStorage");
+          navigate('/admin');
+          return;
+        }
+        
         console.log("Verificando autenticación...");
         const isLoggedIn = await AuthService.isLoggedIn();
         console.log("Usuario autenticado:", isLoggedIn);
@@ -49,10 +56,15 @@ const Login = () => {
       const result = await AuthService.loginAsAdmin(email, password);
       
       if (result.success) {
-        // Verificar si es admin para redirigir
-        const isAdmin = await AuthService.isAdmin();
-        console.log("Login exitoso. Es administrador:", isAdmin);
-        navigate(isAdmin ? '/admin' : '/dashboard');
+        // Verificar si es admin para redirigir usando localStorage primero para evitar bucles
+        if (localStorage.getItem('isAdmin') === 'true') {
+          console.log("Login exitoso. Es administrador por localStorage");
+          navigate('/admin');
+        } else {
+          const isAdmin = await AuthService.isAdmin();
+          console.log("Login exitoso. Es administrador:", isAdmin);
+          navigate(isAdmin ? '/admin' : '/dashboard');
+        }
       } else {
         console.error("Error en login:", result.error);
         toast.error("Credenciales incorrectas: " + (result.error || "Verifica tu email y contraseña"));
@@ -107,6 +119,9 @@ const Login = () => {
           <div className="w-full text-center">
             <p className="text-xs text-gray-500 mt-4">
               Usuario admin: admin@example.com / Contraseña: admin123
+            </p>
+            <p className="text-xs text-gray-500 mt-1">
+              Superadmin: holaestudiokm@gmail.com
             </p>
           </div>
         </CardFooter>

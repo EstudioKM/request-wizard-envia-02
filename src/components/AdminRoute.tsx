@@ -16,6 +16,15 @@ const AdminRoute: React.FC<AdminRouteProps> = ({ children }) => {
     const checkAdminStatus = async () => {
       try {
         setIsLoading(true);
+        
+        // Verificación rápida por localStorage primero
+        if (localStorage.getItem('isAdmin') === 'true') {
+          console.log("Admin verificado por localStorage");
+          setIsAdmin(true);
+          setIsLoading(false);
+          return;
+        }
+        
         console.log("Verificando estado de administrador...");
         const adminStatus = await AuthService.isAdmin();
         console.log("Estado de administrador:", adminStatus);
