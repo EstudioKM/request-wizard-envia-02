@@ -31,7 +31,7 @@ const CompanyList: React.FC<CompanyListProps> = ({ companies, isLoading, onRefre
   const handleDeleteCompany = async (id: string) => {
     if (confirm("¿Estás seguro de eliminar esta empresa?")) {
       try {
-        const result = AuthService.deleteCompany(id);
+        const result = await AuthService.deleteCompany(id);
         
         if (result) {
           toast.success("Empresa eliminada correctamente");

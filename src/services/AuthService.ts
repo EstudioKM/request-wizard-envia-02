@@ -1,5 +1,6 @@
 
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 import { Company } from "@/pages/Admin";
 
 // Tipos de usuario
@@ -32,45 +33,10 @@ const predefinedPasswords: Record<string, string> = {
 
 // Clave para almacenar el usuario actual en localStorage
 const USER_STORAGE_KEY = "current-user";
-const COMPANIES_STORAGE_KEY = "companies";
 
-// Inicializar empresas predeterminadas si no existen
-const initDefaultCompanies = () => {
-  const existingCompanies = localStorage.getItem(COMPANIES_STORAGE_KEY);
-  
-  if (!existingCompanies) {
-    const currentDate = new Date().toISOString();
-    const defaultCompanies: Company[] = [
-      {
-        id: "1",
-        name: "Empresa Demo",
-        token: "empresa-demo-token-123",
-        created_at: currentDate
-      },
-      {
-        id: "2",
-        name: "Empresa Ejemplo S.A.",
-        token: "empresa-ejemplo-token-456",
-        created_at: currentDate
-      },
-      {
-        id: "3",
-        name: "Corporación ABC",
-        token: "corporacion-abc-token-789",
-        created_at: currentDate
-      }
-    ];
-    
-    localStorage.setItem(COMPANIES_STORAGE_KEY, JSON.stringify(defaultCompanies));
-    
-    // Asignar el token a la empresa predefinida
-    predefinedUsers["empresa@example.com"].company_id = "1";
-    predefinedUsers["empresa@example.com"].token = "empresa-demo-token-123";
-  }
-};
-
-// Inicializar empresas al cargar
-initDefaultCompanies();
+// Asignar el token a la empresa predefinida
+predefinedUsers["empresa@example.com"].company_id = "1";
+predefinedUsers["empresa@example.com"].token = "empresa-demo-token-123";
 
 export const AuthService = {
   // Iniciar sesión
@@ -148,68 +114,79 @@ export const AuthService = {
   },
   
   // Servicios para la gestión de empresas (CRUD)
-  getCompanies: (): Company[] => {
+  getCompanies: async (): Promise<Company[]> => {
     try {
-      const companiesJson = localStorage.getItem(COMPANIES_STORAGE_KEY);
-      if (!companiesJson) return [];
+      const { data, error } = await supabase
+        .from('companies')
+        .select('*');
       
-      const companies = JSON.parse(companiesJson);
+      if (error) {
+        console.error("Error al obtener empresas de Supabase:", error);
+        throw error;
+      }
       
-      // Ensure all companies have created_at
-      return companies.map((company: any) => ({
-        ...company,
-        created_at: company.created_at || new Date().toISOString()
-      }));
+      return data || [];
     } catch (error) {
       console.error("Error al obtener empresas:", error);
       return [];
     }
   },
   
-  addCompany: (company: Omit<Company, "id" | "created_at">): Company => {
+  addCompany: async (company: Omit<Company, "id" | "created_at">): Promise<Company> => {
     try {
-      const companies = AuthService.getCompanies();
-      const newCompany: Company = {
-        ...company,
-        id: Date.now().toString(),
-        created_at: new Date().toISOString()
-      };
+      const { data, error } = await supabase
+        .from('companies')
+        .insert([{ 
+          name: company.name, 
+          token: company.token 
+        }])
+        .select()
+        .single();
       
-      companies.push(newCompany);
-      localStorage.setItem(COMPANIES_STORAGE_KEY, JSON.stringify(companies));
+      if (error) {
+        console.error("Error al añadir empresa en Supabase:", error);
+        throw error;
+      }
       
-      return newCompany;
+      return data;
     } catch (error) {
       console.error("Error al añadir empresa:", error);
       throw error;
     }
   },
   
-  updateCompany: (id: string, updates: Partial<Company>): Company => {
+  updateCompany: async (id: string, updates: Partial<Company>): Promise<Company> => {
     try {
-      const companies = AuthService.getCompanies();
-      const index = companies.findIndex(c => c.id === id);
+      const { data, error } = await supabase
+        .from('companies')
+        .update(updates)
+        .eq('id', id)
+        .select()
+        .single();
       
-      if (index === -1) {
-        throw new Error("Empresa no encontrada");
+      if (error) {
+        console.error("Error al actualizar empresa en Supabase:", error);
+        throw error;
       }
       
-      companies[index] = { ...companies[index], ...updates };
-      localStorage.setItem(COMPANIES_STORAGE_KEY, JSON.stringify(companies));
-      
-      return companies[index];
+      return data;
     } catch (error) {
       console.error("Error al actualizar empresa:", error);
       throw error;
     }
   },
   
-  deleteCompany: (id: string): boolean => {
+  deleteCompany: async (id: string): Promise<boolean> => {
     try {
-      const companies = AuthService.getCompanies();
-      const filteredCompanies = companies.filter(c => c.id !== id);
+      const { error } = await supabase
+        .from('companies')
+        .delete()
+        .eq('id', id);
       
-      localStorage.setItem(COMPANIES_STORAGE_KEY, JSON.stringify(filteredCompanies));
+      if (error) {
+        console.error("Error al eliminar empresa en Supabase:", error);
+        throw error;
+      }
       
       return true;
     } catch (error) {

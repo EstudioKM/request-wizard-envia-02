@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -53,8 +54,8 @@ const CreateCompanyDialog: React.FC<CreateCompanyDialogProps> = ({
     try {
       console.log("Creating company with values:", values);
       
-      // Usamos el nuevo servicio para crear empresas
-      AuthService.addCompany({
+      // Usamos el servicio para crear empresas en Supabase
+      await AuthService.addCompany({
         name: values.name,
         token: values.token,
       });
@@ -69,7 +70,6 @@ const CreateCompanyDialog: React.FC<CreateCompanyDialogProps> = ({
       toast.error("Error al crear empresa: " + (error.message || "Error desconocido"));
     }
   };
-  
   
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>

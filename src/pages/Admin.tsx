@@ -12,6 +12,7 @@ export type Company = {
   name: string;
   token: string;
   created_at: string;
+  updated_at?: string;
 };
 
 export type Profile = {
@@ -40,14 +41,9 @@ const Admin = () => {
   const loadCompanies = async () => {
     setIsLoadingCompanies(true);
     try {
-      // Usamos el nuevo servicio para obtener empresas
-      const companiesData = AuthService.getCompanies();
-      // Add created_at if it doesn't exist
-      const companiesWithCreatedAt = companiesData.map(company => ({
-        ...company,
-        created_at: company.created_at || new Date().toISOString()
-      }));
-      setCompanies(companiesWithCreatedAt);
+      // Usamos Supabase para obtener empresas
+      const companiesData = await AuthService.getCompanies();
+      setCompanies(companiesData);
     } catch (error: any) {
       console.error("Error loading companies:", error);
       toast.error("Error al cargar empresas: " + error.message);
