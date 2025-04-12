@@ -1,8 +1,11 @@
 
 import React from 'react';
-import CustomFieldsEditor from "@/components/CustomFieldsEditor";
+import { Button } from '@/components/ui/button';
+import { useNavigate } from 'react-router-dom';
 
 const Index = () => {
+  const navigate = useNavigate();
+
   return (
     <div className="min-h-screen w-full bg-background">
       <div className="flex-1 p-6">
@@ -16,10 +19,11 @@ const Index = () => {
           </p>
         </header>
         
-        <div className="max-w-6xl mx-auto">
-          <div className="app-card p-6">
-            <CustomFieldsEditor />
-          </div>
+        <div className="max-w-6xl mx-auto text-center">
+          <p className="mb-6 text-lg">Bienvenido a la plataforma de gestión de campos personalizados.</p>
+          <Button onClick={() => navigate('/dashboard')} className="bg-primary hover:bg-primary/90">
+            Acceder a los Campos Personalizados
+          </Button>
         </div>
       </div>
     </div>
