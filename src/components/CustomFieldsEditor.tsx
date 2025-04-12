@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Search, RefreshCcw } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -37,7 +36,7 @@ const CustomFieldsEditor = () => {
   const [loadingProgress, setLoadingProgress] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
-  const [hideEmptyFields, setHideEmptyFields] = useState(false);
+  const [hideEmptyFields, setHideEmptyFields] = useState(true);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -147,7 +146,6 @@ const CustomFieldsEditor = () => {
     });
     
     try {
-      // Aumentar el tamaño del chunk para procesar más campos en paralelo
       const chunkSize = 5;
       
       for (let i = 0; i < fields.length; i += chunkSize) {
@@ -166,7 +164,6 @@ const CustomFieldsEditor = () => {
               });
               success = true;
             } catch (err) {
-              // Si falla el primer endpoint, intentar con el segundo sin espera adicional
               response = await http.get(`https://app.estudiokm.com.ar/api/accounts/custom_fields/name/${field.id}`, {
                 headers: {
                   'accept': 'application/json',
@@ -200,14 +197,11 @@ const CustomFieldsEditor = () => {
           return null;
         });
         
-        // Esperar a que se completen todas las promesas del chunk
         await Promise.all(promises);
         
-        // Actualizar el estado después de cada chunk
         setCustomFields([...updatedFields]);
         setFilteredFields([...updatedFields]);
         
-        // Reducir la espera entre chunks
         await sleep(200);
       }
       
