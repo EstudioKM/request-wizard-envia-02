@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -53,7 +54,7 @@ const CreateCompanyDialog: React.FC<CreateCompanyDialogProps> = ({
     try {
       console.log("Creating company with values:", values);
       
-      // Usamos el servicio para crear empresas en Supabase
+      // Create company in Supabase using the AuthService
       await AuthService.addCompany({
         name: values.name,
         token: values.token,
