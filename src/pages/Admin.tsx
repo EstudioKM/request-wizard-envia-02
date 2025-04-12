@@ -103,6 +103,7 @@ const Admin = () => {
   });
   
   useEffect(() => {
+    console.log("Admin component mounted, loading data...");
     loadCompanies();
     loadProfiles();
   }, []);
@@ -227,7 +228,7 @@ const Admin = () => {
       toast.success("Empresa creada exitosamente");
       companyForm.reset();
       setCompanyModalOpen(false);
-      loadCompanies();
+      await loadCompanies(); // Recargar empresas después de crear una nueva
     } catch (error: any) {
       console.error("Error details:", error);
       toast.error("Error al crear empresa: " + (error.message || "Error desconocido"));
