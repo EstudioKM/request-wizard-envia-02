@@ -1,4 +1,3 @@
-
 import { HttpError, HttpResponse, RequestOptions } from './types';
 
 const DEFAULT_TIMEOUT = 30000; // 30 segundos
@@ -9,7 +8,7 @@ const DEFAULT_RETRIES = 2;
  */
 export class HttpClient {
   private baseURL: string;
-  private defaultOptions: RequestOptions;
+  public defaultOptions: RequestOptions;
   private proxyEnabled: boolean;
 
   constructor(baseURL: string = '', defaultOptions: RequestOptions = {}, proxyEnabled: boolean = true) {
@@ -275,6 +274,20 @@ export class HttpClient {
    */
   setProxyEnabled(enabled: boolean): void {
     this.proxyEnabled = enabled;
+  }
+
+  /**
+   * Establecer opciones por defecto
+   */
+  setDefaultOptions(options: RequestOptions): void {
+    this.defaultOptions = {
+      ...this.defaultOptions,
+      ...options,
+      headers: {
+        ...this.defaultOptions.headers,
+        ...options.headers,
+      },
+    };
   }
 }
 
