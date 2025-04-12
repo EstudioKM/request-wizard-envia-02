@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
@@ -113,6 +114,7 @@ const Admin = () => {
   const loadCompanies = async () => {
     setIsLoadingCompanies(true);
     try {
+      console.log("Loading companies...");
       const adminClient = getAdminClient();
       const { data, error } = await adminClient
         .from('companies')
@@ -123,6 +125,7 @@ const Admin = () => {
         console.error("Error loading companies:", error);
         toast.error("Error al cargar empresas: " + error.message);
       } else {
+        console.log("Companies loaded successfully:", data);
         setCompanies(data || []);
       }
     } catch (error: any) {
@@ -136,6 +139,7 @@ const Admin = () => {
   const loadProfiles = async () => {
     setIsLoadingProfiles(true);
     try {
+      console.log("Loading profiles...");
       const adminClient = getAdminClient();
       const { data, error } = await adminClient
         .from('profiles')
@@ -146,6 +150,7 @@ const Admin = () => {
         console.error("Error loading profiles:", error);
         toast.error("Error al cargar usuarios: " + error.message);
       } else {
+        console.log("Profiles loaded successfully:", data);
         setProfiles(data || []);
       }
     } catch (error: any) {
