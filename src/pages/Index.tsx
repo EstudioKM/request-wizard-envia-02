@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Home, Inbox, Users, Calendar, BookOpen, Package, FileText, GitBranch, Tool, Settings, Tag, Zap, Webhook } from 'lucide-react';
+import { Home, Inbox, Users, Calendar, BookOpen, Package, FileText, GitBranch, Wrench, Settings, Tag, Zap, Webhook } from 'lucide-react';
 import { SidebarProvider, Sidebar, SidebarContent, SidebarHeader, SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarFooter } from '@/components/ui/sidebar';
 import CustomFieldsEditor from "@/components/CustomFieldsEditor";
 
@@ -16,7 +16,7 @@ const menuItems = [
   { icon: Users, label: 'Usuarios', href: '#' },
   { icon: FileText, label: 'Tutoriales', href: '#' },
   { icon: GitBranch, label: 'Flujos', href: '#' },
-  { icon: Tool, label: 'Herramientas', href: '#' },
+  { icon: Wrench, label: 'Herramientas', href: '#' },
   { icon: Settings, label: 'Ajustes', href: '#' },
   { icon: Tag, label: 'Campos Personalizados', href: '#', isActive: true },
   { icon: Zap, label: 'Disparadores', href: '#' },
