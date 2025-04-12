@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
@@ -136,7 +135,7 @@ const Admin = () => {
     try {
       console.log("Loading companies...");
       const adminClient = getAdminClient();
-      console.log("Admin client created, URL:", adminClient.supabaseUrl);
+      console.log("Admin client created for companies");
       
       const { data, error } = await adminClient
         .from('companies')
@@ -163,7 +162,7 @@ const Admin = () => {
     try {
       console.log("Loading profiles...");
       const adminClient = getAdminClient();
-      console.log("Admin client created for profiles, URL:", adminClient.supabaseUrl);
+      console.log("Admin client created for profiles");
       
       const { data, error } = await adminClient
         .from('profiles')
