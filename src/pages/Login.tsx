@@ -3,110 +3,215 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { toast } from "sonner";
-import { AuthService } from '@/services/AuthService';
+import { http } from '@/lib/http-client';
+import { supabase } from "@/integrations/supabase/client";
 
 const Login = () => {
-  const navigate = useNavigate();
+  const [token, setToken] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  
+  const [error, setError] = useState<string | null>(null);
+  const [loginMethod, setLoginMethod] = useState<'token' | 'email'>('token');
+  const navigate = useNavigate();
+
+  // Check if token exists in localStorage on component mount
   useEffect(() => {
-    const checkAuth = async () => {
-      try {
-        const isLoggedIn = await AuthService.isLoggedIn();
-        
-        if (isLoggedIn) {
-          const isAdmin = await AuthService.isAdmin();
-          navigate(isAdmin ? '/admin' : '/dashboard');
-        }
-      } catch (error) {
-        console.error("Error al verificar autenticación:", error);
-      }
-    };
-    
-    checkAuth();
-  }, [navigate]);
-  
-  const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!email || !password) {
-      toast.error("Por favor ingresa email y contraseña");
+    const savedToken = localStorage.getItem('estudio-km-token');
+    if (savedToken) {
+      // Validate token before auto-login
+      validateAndLogin(savedToken, true);
+    }
+  }, []);
+
+  const validateAndLogin = async (tokenValue: string, isAutoLogin = false) => {
+    if (!tokenValue.trim()) {
+      setError('Por favor ingresa un token válido');
       return;
     }
-    
+
     setIsLoading(true);
+    setError(null);
     
     try {
-      const result = await AuthService.login(email, password);
+      // Test the token with a simple API call
+      const response = await http.get('/api-proxy/api/accounts/me', {
+        headers: {
+          'x-access-token': tokenValue
+        }
+      });
       
-      if (result.success) {
-        const isAdmin = await AuthService.isAdmin();
-        navigate(isAdmin ? '/admin' : '/dashboard');
-      } else {
-        toast.error("Credenciales incorrectas: " + (result.error || "Verifica tu email y contraseña"));
+      // Guardando el token en localStorage
+      console.log('Token válido, guardando:', tokenValue);
+      localStorage.setItem('estudio-km-token', tokenValue);
+      
+      // Estableciendo el token para todas las solicitudes futuras
+      http.defaultOptions.headers = {
+        ...http.defaultOptions.headers,
+        'x-access-token': tokenValue
+      };
+      
+      console.log('Headers configurados:', http.defaultOptions.headers);
+      
+      if (!isAutoLogin) {
+        toast.success("Sesión iniciada correctamente con token: " + tokenValue.substring(0, 10) + "...");
       }
-    } catch (error: any) {
-      console.error("Error de login:", error);
-      toast.error("Error al iniciar sesión: " + (error.message || "Error desconocido"));
+      
+      navigate('/dashboard');
+    } catch (err) {
+      console.error('Error validando token:', err);
+      setError('Token inválido o problemas de conexión. Por favor intenta nuevamente.');
+      
+      if (isAutoLogin) {
+        // Limpiar token inválido si el auto-login falla
+        localStorage.removeItem('estudio-km-token');
+      }
     } finally {
       setIsLoading(false);
     }
   };
-  
+
+  const handleEmailLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!email || !password) {
+      setError('Por favor ingresa email y contraseña');
+      return;
+    }
+
+    setIsLoading(true);
+    setError(null);
+    
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+      
+      if (error) throw error;
+      
+      toast.success("Sesión iniciada correctamente");
+      navigate('/dashboard');
+    } catch (err: any) {
+      console.error('Error en login:', err);
+      setError(err.message || 'Error al iniciar sesión');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleTokenLogin = (e: React.FormEvent) => {
+    e.preventDefault();
+    validateAndLogin(token);
+  };
+
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50">
-      <Card className="w-full max-w-md">
-        <CardHeader className="space-y-1">
-          <CardTitle className="text-2xl font-bold text-center">Iniciar Sesión</CardTitle>
-          <CardDescription className="text-center">
-            Ingresa tus credenciales para acceder
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleLogin} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
-              <Input 
-                id="email" 
-                type="email" 
-                placeholder="tu@email.com" 
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                disabled={isLoading}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="password">Contraseña</Label>
-              <Input 
-                id="password" 
-                type="password" 
-                placeholder="••••••••" 
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                disabled={isLoading}
-              />
-            </div>
-            <Button type="submit" className="w-full" disabled={isLoading}>
-              {isLoading ? "Iniciando sesión..." : "Iniciar Sesión"}
-            </Button>
-          </form>
-        </CardContent>
-        <CardFooter className="text-center text-sm">
-          <div className="w-full text-center">
-            <p className="text-xs text-gray-500 mt-4">
-              Usuario administrador: admin@example.com / Contraseña: admin123
-            </p>
-            <p className="text-xs text-gray-500 mt-1">
-              Usuario empresa: empresa@example.com / Contraseña: empresa123
-            </p>
+    <div className="min-h-screen w-full flex items-center justify-center bg-gray-50">
+      <div className="max-w-md w-full p-8 bg-white rounded-xl shadow-lg">
+        <div className="text-center mb-8">
+          <div className="h-16 w-16 rounded-full bg-gradient-to-r from-purple-600 to-blue-500 flex items-center justify-center text-white font-bold text-xl mx-auto mb-4">
+            E
           </div>
-        </CardFooter>
-      </Card>
+          <h1 className="text-2xl font-bold text-gray-800">Estudio KM</h1>
+          <p className="text-gray-500 mt-2">Plataforma de administración</p>
+        </div>
+
+        {error && (
+          <Alert variant="destructive" className="mb-6">
+            <AlertDescription>{error}</AlertDescription>
+          </Alert>
+        )}
+
+        <div className="flex space-x-2 mb-6">
+          <Button 
+            type="button" 
+            variant={loginMethod === 'token' ? 'default' : 'outline'}
+            className="flex-1"
+            onClick={() => setLoginMethod('token')}
+          >
+            Token
+          </Button>
+          <Button 
+            type="button" 
+            variant={loginMethod === 'email' ? 'default' : 'outline'}
+            className="flex-1"
+            onClick={() => setLoginMethod('email')}
+          >
+            Email
+          </Button>
+        </div>
+
+        {loginMethod === 'token' ? (
+          <form onSubmit={handleTokenLogin}>
+            <div className="space-y-4">
+              <div>
+                <label htmlFor="token" className="block text-sm font-medium text-gray-700 mb-1">
+                  Token de API
+                </label>
+                <Input
+                  id="token"
+                  type="text"
+                  placeholder="Ingresa tu token de acceso"
+                  value={token}
+                  onChange={(e) => setToken(e.target.value)}
+                  required
+                  className="w-full"
+                />
+              </div>
+
+              <Button 
+                type="submit" 
+                className="w-full"
+                disabled={isLoading}
+              >
+                {isLoading ? 'Validando...' : 'Ingresar con Token'}
+              </Button>
+            </div>
+          </form>
+        ) : (
+          <form onSubmit={handleEmailLogin}>
+            <div className="space-y-4">
+              <div>
+                <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
+                  Email
+                </label>
+                <Input
+                  id="email"
+                  type="email"
+                  placeholder="tu@email.com"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                  className="w-full"
+                />
+              </div>
+              <div>
+                <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
+                  Contraseña
+                </label>
+                <Input
+                  id="password"
+                  type="password"
+                  placeholder="Contraseña"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                  className="w-full"
+                />
+              </div>
+
+              <Button 
+                type="submit" 
+                className="w-full"
+                disabled={isLoading}
+              >
+                {isLoading ? 'Iniciando sesión...' : 'Ingresar con Email'}
+              </Button>
+            </div>
+          </form>
+        )}
+      </div>
     </div>
   );
 };

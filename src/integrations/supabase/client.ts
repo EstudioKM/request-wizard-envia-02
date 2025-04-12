@@ -4,42 +4,9 @@ import { createClient } from '@supabase/supabase-js';
 import type { Database } from './types';
 
 const SUPABASE_URL = "https://fbepoxpmkoejgimjiswp.supabase.co";
-const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZiZXBveHBta29lamdpbWppc3dwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDQ0MjYzODAsImV4cCI6MjA2MDAwMjM4MH0.-Isyl4fJku1klRMhxibfzHHo4m6gczWhAI9Q6a3bWag";
-const SUPABASE_SERVICE_ROLE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZiZXBveHBta29lamdpbWppc3dwIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc0NDQyNjM4MCwiZXhwIjoyMDYwMDAyMzgwfQ.BXJxwPi77Vre4e0DwJmuxNX-YsJh9Rvp1zlqP39QFOY";
+const SUPABASE_PUBLISHABLE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZiZXBveHBta29lamdpbWppc3dwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDQ0MjYzODAsImV4cCI6MjA2MDAwMjM4MH0.-Isyl4fJku1klRMhxibfzHHo4m6gczWhAI9Q6a3bWag";
 
 // Import the supabase client like this:
 // import { supabase } from "@/integrations/supabase/client";
 
-// Initialize the standard client for regular operations
-export const supabase = createClient<Database>(
-  SUPABASE_URL, 
-  SUPABASE_ANON_KEY,
-  {
-    auth: {
-      autoRefreshToken: true,
-      persistSession: true,
-      detectSessionInUrl: false
-    }
-  }
-);
-
-// Initialize and cache the admin client to avoid multiple instances
-let adminClient: ReturnType<typeof createClient<Database>> | null = null;
-
-// Function to get the admin client for elevated operations
-export const getAdminClient = () => {
-  if (!adminClient) {
-    adminClient = createClient<Database>(
-      SUPABASE_URL, 
-      SUPABASE_SERVICE_ROLE_KEY, 
-      {
-        auth: {
-          autoRefreshToken: false,
-          persistSession: false,
-          detectSessionInUrl: false
-        }
-      }
-    );
-  }
-  return adminClient;
-};
+export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
