@@ -17,14 +17,17 @@ const AdminRoute: React.FC<AdminRouteProps> = ({ children }) => {
       try {
         setIsLoading(true);
         
-        // Get the current user
-        const currentUser = AuthService.getCurrentUser();
+        // Check if the user is logged in
+        const isLoggedIn = await AuthService.isLoggedIn();
         
-        // Check if the user is admin@example.com specifically
-        const isAdminUser = currentUser?.email === "admin@example.com";
+        if (!isLoggedIn) {
+          setIsAdmin(false);
+          return;
+        }
         
-        console.log("Estado de administrador:", isAdminUser);
-        setIsAdmin(isAdminUser);
+        // Check if the user is an admin
+        const adminStatus = await AuthService.isAdmin();
+        setIsAdmin(adminStatus);
       } catch (error) {
         console.error("Error al verificar estado de administrador:", error);
         setIsAdmin(false);
@@ -47,7 +50,7 @@ const AdminRoute: React.FC<AdminRouteProps> = ({ children }) => {
   }
   
   if (!isAdmin) {
-    toast.error("Solo admin@example.com tiene acceso a esta página");
+    toast.error("No tienes permisos de administrador para acceder a esta página");
     return <Navigate to="/" replace />;
   }
   

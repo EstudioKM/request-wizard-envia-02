@@ -38,16 +38,21 @@ export const AuthService = {
         return { success: false, error: "Error al obtener información de usuario" };
       }
       
-      // Fetch profile to get role and company_id
+      // Get user details using a direct query instead of relying on RLS
       const { data: profileData, error: profileError } = await supabase
         .from('profiles')
-        .select('*')
+        .select('role, company_id')
         .eq('id', data.user.id)
-        .single();
+        .maybeSingle();
         
       if (profileError) {
         console.error("Error al obtener perfil:", profileError);
         return { success: false, error: profileError.message };
+      }
+      
+      if (!profileData) {
+        console.error("No se encontró el perfil del usuario");
+        return { success: false, error: "Perfil de usuario no encontrado" };
       }
       
       // Create user object
@@ -63,7 +68,7 @@ export const AuthService = {
           .from('empresas')
           .select('token')
           .eq('id', user.company_id)
-          .single();
+          .maybeSingle();
           
         if (companyData) {
           user.token = companyData.token;
@@ -115,12 +120,19 @@ export const AuthService = {
       const { data } = await supabase.auth.getSession();
       if (!data.session) return false;
       
-      // Then check if the user has admin role in the profiles table
+      // Get user from localStorage for performance
+      const userJson = localStorage.getItem(USER_STORAGE_KEY);
+      if (userJson) {
+        const user = JSON.parse(userJson) as User;
+        return user.role === 'admin';
+      }
+      
+      // If not in localStorage, check the database directly
       const { data: profileData } = await supabase
         .from('profiles')
         .select('role')
         .eq('id', data.session.user.id)
-        .single();
+        .maybeSingle();
         
       return profileData?.role === 'admin';
     } catch (error) {
