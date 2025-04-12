@@ -135,7 +135,7 @@ const Admin = () => {
       const adminClient = getAdminClient();
       console.log("Admin client created for profiles");
       
-      const { data: authUsers, error: authError } = await adminClient.auth.admin.listUsers();
+      const { data: authUsersData, error: authError } = await adminClient.auth.admin.listUsers();
       
       if (authError) {
         console.error("Error loading auth users:", authError);
@@ -143,6 +143,7 @@ const Admin = () => {
         return;
       }
       
+      const authUsers = authUsersData || { users: [] };
       console.log("Auth users loaded successfully:", authUsers);
       
       const { data: profilesData, error: profilesError } = await adminClient
@@ -158,13 +159,13 @@ const Admin = () => {
       
       console.log("Profiles loaded successfully:", profilesData);
       
-      const combinedProfiles = profilesData?.map(profile => {
+      const combinedProfiles = (profilesData || []).map(profile => {
         const authUser = authUsers.users.find(u => u.id === profile.id);
         return {
           ...profile,
           email: authUser?.email || profile.email || 'Sin email'
         };
-      }) || [];
+      });
       
       setProfiles(combinedProfiles);
     } catch (error: any) {
