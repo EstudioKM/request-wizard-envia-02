@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
@@ -35,7 +34,7 @@ const Login = () => {
       // Test the token with a simple API call
       const response = await http.get('/api-proxy/api/accounts/me', {
         headers: {
-          'X-ACCESS-TOKEN': tokenValue
+          'x-access-token': tokenValue
         }
       });
       

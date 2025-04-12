@@ -84,7 +84,7 @@ const CustomFieldsEditor = () => {
         const response = await http.get('/api-proxy/api/accounts/custom_fields', {
           headers: {
             'accept': 'application/json',
-            'X-ACCESS-TOKEN': token
+            'x-access-token': token
           }
         });
         
@@ -172,7 +172,7 @@ const CustomFieldsEditor = () => {
               response = await http.get(`/api-proxy/api/accounts/bot_fields/${field.id}`, {
                 headers: {
                   'accept': 'application/json',
-                  'X-ACCESS-TOKEN': token
+                  'x-access-token': token
                 }
               });
               success = true;
@@ -181,7 +181,7 @@ const CustomFieldsEditor = () => {
               response = await http.get(`/api-proxy/api/accounts/custom_fields/name/${field.id}`, {
                 headers: {
                   'accept': 'application/json',
-                  'X-ACCESS-TOKEN': token
+                  'x-access-token': token
                 }
               });
               success = true;
