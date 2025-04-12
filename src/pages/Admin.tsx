@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import {
   Table,
   TableBody,
@@ -16,7 +15,6 @@ import {
   Card,
   CardContent,
   CardDescription,
-  CardFooter,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
@@ -29,18 +27,10 @@ import {
   DialogFooter,
   DialogDescription,
 } from "@/components/ui/dialog";
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form";
 import { toast } from "sonner";
 import { supabase, getAdminClient } from "@/integrations/supabase/client";
 import { AuthService } from '@/services/AuthService';
-import { LogOut, Plus, Pencil, Trash, Users, Building, Key, Mail, Phone, Globe, MapPin } from 'lucide-react';
+import { LogOut, Plus, Pencil, Trash, Users, Building, Key } from 'lucide-react';
 import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -50,13 +40,6 @@ type Company = {
   name: string;
   token: string;
   created_at: string;
-  description: string | null;
-  logo_url: string | null;
-  website: string | null;
-  contact_email: string | null;
-  contact_phone: string | null;
-  status: string | null;
-  address: string | null;
 };
 
 type Profile = {
@@ -82,12 +65,6 @@ const Admin = () => {
   const companySchema = z.object({
     name: z.string().min(3, "El nombre debe tener al menos 3 caracteres"),
     token: z.string().min(6, "El token debe tener al menos 6 caracteres"),
-    description: z.string().optional(),
-    website: z.string().url("Ingrese una URL válida").optional().or(z.literal('')),
-    contact_email: z.string().email("Ingrese un email válido").optional().or(z.literal('')),
-    contact_phone: z.string().optional(),
-    address: z.string().optional(),
-    status: z.string().optional(),
   });
   
   const userSchema = z.object({
@@ -104,12 +81,6 @@ const Admin = () => {
     defaultValues: {
       name: "",
       token: "",
-      description: "",
-      website: "",
-      contact_email: "",
-      contact_phone: "",
-      address: "",
-      status: "active",
     },
   });
   
@@ -197,12 +168,6 @@ const Admin = () => {
         .insert({
           name: values.name,
           token: values.token,
-          description: values.description || null,
-          website: values.website || null,
-          contact_email: values.contact_email || null,
-          contact_phone: values.contact_phone || null,
-          address: values.address || null,
-          status: values.status || 'active'
         })
         .select();
         
@@ -339,129 +304,33 @@ const Admin = () => {
                   <DialogHeader>
                     <DialogTitle>Crear Nueva Empresa</DialogTitle>
                     <DialogDescription>
-                      Ingresa los datos de la nueva empresa y su token de acceso.
+                      Ingresa el nombre de la empresa y su token de acceso.
                     </DialogDescription>
                   </DialogHeader>
                   
                   <form onSubmit={companyForm.handleSubmit(onCompanySubmit)} className="space-y-4 py-4">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="name">Nombre de la Empresa *</Label>
-                        <Input
-                          id="name"
-                          {...companyForm.register("name")}
-                          placeholder="Ingresa el nombre de la empresa"
-                        />
-                        {companyForm.formState.errors.name && (
-                          <p className="text-sm text-red-500">{companyForm.formState.errors.name.message}</p>
-                        )}
-                      </div>
-                      
-                      <div className="space-y-2">
-                        <Label htmlFor="token">Token de Acceso *</Label>
-                        <Input
-                          id="token"
-                          {...companyForm.register("token")}
-                          placeholder="Ingresa el token de acceso"
-                        />
-                        {companyForm.formState.errors.token && (
-                          <p className="text-sm text-red-500">{companyForm.formState.errors.token.message}</p>
-                        )}
-                      </div>
-                    </div>
-                    
                     <div className="space-y-2">
-                      <Label htmlFor="description">Descripción</Label>
-                      <Textarea
-                        id="description"
-                        {...companyForm.register("description")}
-                        placeholder="Descripción de la empresa"
-                        rows={3}
+                      <Label htmlFor="name">Nombre de la Empresa *</Label>
+                      <Input
+                        id="name"
+                        {...companyForm.register("name")}
+                        placeholder="Ingresa el nombre de la empresa"
                       />
-                    </div>
-                    
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="website">Sitio Web</Label>
-                        <div className="flex">
-                          <span className="inline-flex items-center px-3 rounded-l-md border border-r-0 border-input bg-muted text-muted-foreground text-sm">
-                            <Globe size={16} />
-                          </span>
-                          <Input
-                            id="website"
-                            {...companyForm.register("website")}
-                            placeholder="https://ejemplo.com"
-                            className="rounded-l-none"
-                          />
-                        </div>
-                        {companyForm.formState.errors.website && (
-                          <p className="text-sm text-red-500">{companyForm.formState.errors.website.message}</p>
-                        )}
-                      </div>
-                      
-                      <div className="space-y-2">
-                        <Label htmlFor="contact_email">Email de Contacto</Label>
-                        <div className="flex">
-                          <span className="inline-flex items-center px-3 rounded-l-md border border-r-0 border-input bg-muted text-muted-foreground text-sm">
-                            <Mail size={16} />
-                          </span>
-                          <Input
-                            id="contact_email"
-                            type="email"
-                            {...companyForm.register("contact_email")}
-                            placeholder="contacto@ejemplo.com"
-                            className="rounded-l-none"
-                          />
-                        </div>
-                        {companyForm.formState.errors.contact_email && (
-                          <p className="text-sm text-red-500">{companyForm.formState.errors.contact_email.message}</p>
-                        )}
-                      </div>
-                    </div>
-                    
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="contact_phone">Teléfono de Contacto</Label>
-                        <div className="flex">
-                          <span className="inline-flex items-center px-3 rounded-l-md border border-r-0 border-input bg-muted text-muted-foreground text-sm">
-                            <Phone size={16} />
-                          </span>
-                          <Input
-                            id="contact_phone"
-                            {...companyForm.register("contact_phone")}
-                            placeholder="+1234567890"
-                            className="rounded-l-none"
-                          />
-                        </div>
-                      </div>
-                      
-                      <div className="space-y-2">
-                        <Label htmlFor="status">Estado</Label>
-                        <select
-                          id="status"
-                          {...companyForm.register("status")}
-                          className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                        >
-                          <option value="active">Activo</option>
-                          <option value="inactive">Inactivo</option>
-                          <option value="pending">Pendiente</option>
-                        </select>
-                      </div>
+                      {companyForm.formState.errors.name && (
+                        <p className="text-sm text-red-500">{companyForm.formState.errors.name.message}</p>
+                      )}
                     </div>
                     
                     <div className="space-y-2">
-                      <Label htmlFor="address">Dirección</Label>
-                      <div className="flex">
-                        <span className="inline-flex items-center px-3 rounded-l-md border border-r-0 border-input bg-muted text-muted-foreground text-sm">
-                          <MapPin size={16} />
-                        </span>
-                        <Input
-                          id="address"
-                          {...companyForm.register("address")}
-                          placeholder="Dirección de la empresa"
-                          className="rounded-l-none"
-                        />
-                      </div>
+                      <Label htmlFor="token">Token de Acceso *</Label>
+                      <Input
+                        id="token"
+                        {...companyForm.register("token")}
+                        placeholder="Ingresa el token de acceso"
+                      />
+                      {companyForm.formState.errors.token && (
+                        <p className="text-sm text-red-500">{companyForm.formState.errors.token.message}</p>
+                      )}
                     </div>
                     
                     <DialogFooter>
@@ -480,8 +349,6 @@ const Admin = () => {
                   <TableHeader>
                     <TableRow>
                       <TableHead>Nombre</TableHead>
-                      <TableHead>Contacto</TableHead>
-                      <TableHead>Estado</TableHead>
                       <TableHead>Token</TableHead>
                       <TableHead className="text-right">Acciones</TableHead>
                     </TableRow>
@@ -489,7 +356,7 @@ const Admin = () => {
                   <TableBody>
                     {isLoadingCompanies ? (
                       <TableRow>
-                        <TableCell colSpan={5} className="text-center py-4">
+                        <TableCell colSpan={3} className="text-center py-4">
                           <div className="flex justify-center">
                             <div className="animate-spin rounded-full h-6 w-6 border-t-2 border-b-2 border-primary"></div>
                           </div>
@@ -497,7 +364,7 @@ const Admin = () => {
                       </TableRow>
                     ) : companies.length === 0 ? (
                       <TableRow>
-                        <TableCell colSpan={5} className="text-center py-4">
+                        <TableCell colSpan={3} className="text-center py-4">
                           No hay empresas registradas.
                         </TableCell>
                       </TableRow>
@@ -506,36 +373,6 @@ const Admin = () => {
                         <TableRow key={company.id}>
                           <TableCell>
                             <div className="font-medium">{company.name}</div>
-                            <div className="text-xs text-gray-500">{company.website || '-'}</div>
-                          </TableCell>
-                          <TableCell>
-                            {company.contact_email || company.contact_phone ? (
-                              <div>
-                                {company.contact_email && (
-                                  <div className="flex items-center gap-1 text-sm">
-                                    <Mail size={14} />
-                                    <span>{company.contact_email}</span>
-                                  </div>
-                                )}
-                                {company.contact_phone && (
-                                  <div className="flex items-center gap-1 text-sm mt-1">
-                                    <Phone size={14} />
-                                    <span>{company.contact_phone}</span>
-                                  </div>
-                                )}
-                              </div>
-                            ) : '-'}
-                          </TableCell>
-                          <TableCell>
-                            <span className={`px-2 py-1 rounded text-xs font-medium ${
-                              company.status === 'active' ? 'bg-green-100 text-green-700' : 
-                              company.status === 'inactive' ? 'bg-red-100 text-red-700' : 
-                              'bg-yellow-100 text-yellow-700'
-                            }`}>
-                              {company.status === 'active' ? 'Activo' : 
-                              company.status === 'inactive' ? 'Inactivo' : 
-                              company.status === 'pending' ? 'Pendiente' : company.status}
-                            </span>
                           </TableCell>
                           <TableCell>
                             <div className="flex items-center gap-2">
