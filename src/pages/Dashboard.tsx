@@ -5,11 +5,12 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { AuthService } from '@/services/AuthService';
 import { toast } from "sonner";
 import { useNavigate } from 'react-router-dom';
+import { Company } from '@/pages/Admin';
 
 const Dashboard = () => {
   const navigate = useNavigate();
   const [user, setUser] = useState(AuthService.getCurrentUser());
-  const [company, setCompany] = useState<{ id: string; name: string; token: string } | null>(null);
+  const [company, setCompany] = useState<Company | null>(null);
   
   useEffect(() => {
     const checkAuth = async () => {
@@ -29,10 +30,17 @@ const Dashboard = () => {
       
       // Si el usuario tiene un company_id, buscar los detalles de la empresa
       if (currentUser.company_id) {
-        const companies = AuthService.getCompanies();
-        const userCompany = companies.find(c => c.id === currentUser.company_id);
-        if (userCompany) {
-          setCompany(userCompany);
+        try {
+          // Obtener las empresas y esperar con await
+          const companies = await AuthService.getCompanies();
+          // Ahora podemos usar find en el array de empresas
+          const userCompany = companies.find(c => c.id === currentUser.company_id);
+          if (userCompany) {
+            setCompany(userCompany);
+          }
+        } catch (error) {
+          console.error("Error fetching company details:", error);
+          toast.error("No se pudo cargar la información de la empresa");
         }
       }
     };
