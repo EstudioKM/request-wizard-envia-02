@@ -55,7 +55,7 @@ const Admin = () => {
   const loadCompanies = async () => {
     setIsLoadingCompanies(true);
     try {
-      // Get companies from AuthService (which now tries Supabase first)
+      // Get companies from AuthService (now tries both 'empresas' and 'companies' tables)
       const companiesData = await AuthService.getCompanies();
       console.log("Empresas cargadas:", companiesData);
       

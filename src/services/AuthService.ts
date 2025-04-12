@@ -148,10 +148,10 @@ export const AuthService = {
         return [];
       }
       
-      // Try to get companies from Supabase
+      // Try to get companies from Supabase "empresas" table first
       try {
         const { data, error } = await supabase
-          .from('companies')
+          .from('empresas')
           .select('*');
           
         if (error) {
@@ -161,6 +161,20 @@ export const AuthService = {
         if (data && data.length > 0) {
           console.log("Empresas obtenidas de Supabase:", data);
           return data;
+        }
+        
+        // If no data from 'empresas', try from 'companies' table
+        const { data: companiesData, error: companiesError } = await supabase
+          .from('companies')
+          .select('*');
+          
+        if (companiesError) {
+          throw companiesError;
+        }
+        
+        if (companiesData && companiesData.length > 0) {
+          console.log("Empresas obtenidas de Supabase (companies):", companiesData);
+          return companiesData;
         }
       } catch (supabaseError) {
         console.error("Error al obtener empresas de Supabase:", supabaseError);
@@ -178,52 +192,76 @@ export const AuthService = {
     }
   },
   
-  // Resto de métodos simplificados para evitar problemas con Supabase
+  // Método para añadir empresas en la tabla "empresas" de Supabase
   addCompany: async (company: Omit<Company, "id" | "created_at">): Promise<Company> => {
     try {
-      // Attempt to add company to Supabase first
-      try {
-        const { data, error } = await supabase
-          .from('companies')
-          .insert({
-            name: company.name,
-            token: company.token
-          })
-          .select()
-          .single();
-          
-        if (error) throw error;
+      console.log("Añadiendo empresa a Supabase:", company);
+      
+      // Primero intentar guardar en la tabla 'empresas'
+      const { data, error } = await supabase
+        .from('empresas')
+        .insert({
+          name: company.name,
+          token: company.token
+        })
+        .select()
+        .single();
         
-        if (data) {
-          console.log("Empresa añadida en Supabase:", data);
-          return data;
+      if (error) {
+        console.error("Error al añadir empresa a 'empresas':", error);
+        
+        // Si hay error, intentar con la tabla 'companies'
+        try {
+          const { data: companiesData, error: companiesError } = await supabase
+            .from('companies')
+            .insert({
+              name: company.name,
+              token: company.token
+            })
+            .select()
+            .single();
+            
+          if (companiesError) throw companiesError;
+          
+          if (companiesData) {
+            console.log("Empresa añadida en 'companies':", companiesData);
+            return companiesData;
+          }
+        } catch (companiesErr) {
+          console.error("Error al añadir empresa en 'companies':", companiesErr);
         }
-      } catch (supabaseError) {
-        console.error("Error al añadir empresa en Supabase:", supabaseError);
+        
+        // Fallback: Simular añadir empresa
+        const newCompany: Company = {
+          id: crypto.randomUUID(),
+          name: company.name,
+          token: company.token,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        };
+        
+        return newCompany;
       }
       
-      // Fallback: Simulate adding a company
-      const newCompany: Company = {
-        id: crypto.randomUUID(),
-        name: company.name,
-        token: company.token,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
-      };
+      if (data) {
+        console.log("Empresa añadida en 'empresas':", data);
+        return data;
+      }
       
-      return newCompany;
-    } catch (error) {
+      throw new Error("No se pudo guardar la empresa");
+    } catch (error: any) {
       console.error("Error al añadir empresa:", error);
       throw error;
     }
   },
   
+  // Resto de métodos simplificados para evitar problemas con Supabase
   updateCompany: async (id: string, updates: Partial<Company>): Promise<Company> => {
     try {
-      // Try to update in Supabase first
+      // Try to update in 'empresas' table first
       try {
         const { data, error } = await supabase
-          .from('companies')
+          .from('empresas')
           .update(updates)
           .eq('id', id)
           .select()
@@ -232,11 +270,30 @@ export const AuthService = {
         if (error) throw error;
         
         if (data) {
-          console.log("Empresa actualizada en Supabase:", data);
+          console.log("Empresa actualizada en 'empresas':", data);
           return data;
         }
-      } catch (supabaseError) {
-        console.error("Error al actualizar empresa en Supabase:", supabaseError);
+      } catch (empresasError) {
+        console.error("Error al actualizar empresa en 'empresas':", empresasError);
+        
+        // If error, try 'companies' table
+        try {
+          const { data: companiesData, error: companiesError } = await supabase
+            .from('companies')
+            .update(updates)
+            .eq('id', id)
+            .select()
+            .single();
+            
+          if (companiesError) throw companiesError;
+          
+          if (companiesData) {
+            console.log("Empresa actualizada en 'companies':", companiesData);
+            return companiesData;
+          }
+        } catch (companiesErr) {
+          console.error("Error al actualizar empresa en 'companies':", companiesErr);
+        }
       }
       
       // Fallback: Simulate updating a company
@@ -256,19 +313,34 @@ export const AuthService = {
   
   deleteCompany: async (id: string): Promise<boolean> => {
     try {
-      // Try to delete from Supabase first
+      // Try to delete from 'empresas' table first
       try {
         const { error } = await supabase
+          .from('empresas')
+          .delete()
+          .eq('id', id);
+          
+        if (!error) {
+          console.log("Empresa eliminada de 'empresas'");
+          return true;
+        }
+      } catch (empresasError) {
+        console.error("Error al eliminar empresa de 'empresas':", empresasError);
+      }
+      
+      // If error or not found, try 'companies' table
+      try {
+        const { error: companiesError } = await supabase
           .from('companies')
           .delete()
           .eq('id', id);
           
-        if (error) throw error;
-        
-        console.log("Empresa eliminada de Supabase");
-        return true;
-      } catch (supabaseError) {
-        console.error("Error al eliminar empresa de Supabase:", supabaseError);
+        if (!companiesError) {
+          console.log("Empresa eliminada de 'companies'");
+          return true;
+        }
+      } catch (companiesErr) {
+        console.error("Error al eliminar empresa de 'companies':", companiesErr);
       }
       
       // Fallback: Simulate deleting a company
