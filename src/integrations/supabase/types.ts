@@ -11,25 +11,46 @@ export type Database = {
     Tables: {
       companies: {
         Row: {
+          address: string | null
+          contact_email: string | null
+          contact_phone: string | null
           created_at: string
+          description: string | null
           id: string
+          logo_url: string | null
           name: string
+          status: string | null
           token: string
           updated_at: string
+          website: string | null
         }
         Insert: {
+          address?: string | null
+          contact_email?: string | null
+          contact_phone?: string | null
           created_at?: string
+          description?: string | null
           id?: string
+          logo_url?: string | null
           name: string
+          status?: string | null
           token: string
           updated_at?: string
+          website?: string | null
         }
         Update: {
+          address?: string | null
+          contact_email?: string | null
+          contact_phone?: string | null
           created_at?: string
+          description?: string | null
           id?: string
+          logo_url?: string | null
           name?: string
+          status?: string | null
           token?: string
           updated_at?: string
+          website?: string | null
         }
         Relationships: []
       }
