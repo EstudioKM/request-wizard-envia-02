@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
@@ -5,11 +6,15 @@ import { Input } from "@/components/ui/input";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { toast } from "sonner";
 import { http } from '@/lib/http-client';
+import { supabase } from "@/integrations/supabase/client";
 
 const Login = () => {
   const [token, setToken] = useState('');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [loginMethod, setLoginMethod] = useState<'token' | 'email'>('token');
   const navigate = useNavigate();
 
   // Check if token exists in localStorage on component mount
@@ -68,7 +73,35 @@ const Login = () => {
     }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleEmailLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!email || !password) {
+      setError('Por favor ingresa email y contraseña');
+      return;
+    }
+
+    setIsLoading(true);
+    setError(null);
+    
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+      
+      if (error) throw error;
+      
+      toast.success("Sesión iniciada correctamente");
+      navigate('/dashboard');
+    } catch (err: any) {
+      console.error('Error en login:', err);
+      setError(err.message || 'Error al iniciar sesión');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleTokenLogin = (e: React.FormEvent) => {
     e.preventDefault();
     validateAndLogin(token);
   };
@@ -81,7 +114,7 @@ const Login = () => {
             E
           </div>
           <h1 className="text-2xl font-bold text-gray-800">Estudio KM</h1>
-          <p className="text-gray-500 mt-2">Ingresa tu token de acceso para continuar</p>
+          <p className="text-gray-500 mt-2">Plataforma de administración</p>
         </div>
 
         {error && (
@@ -90,32 +123,94 @@ const Login = () => {
           </Alert>
         )}
 
-        <form onSubmit={handleSubmit}>
-          <div className="space-y-4">
-            <div>
-              <label htmlFor="token" className="block text-sm font-medium text-gray-700 mb-1">
-                Token de API
-              </label>
-              <Input
-                id="token"
-                type="text"
-                placeholder="Ingresa tu token de acceso"
-                value={token}
-                onChange={(e) => setToken(e.target.value)}
-                required
-                className="w-full"
-              />
-            </div>
+        <div className="flex space-x-2 mb-6">
+          <Button 
+            type="button" 
+            variant={loginMethod === 'token' ? 'default' : 'outline'}
+            className="flex-1"
+            onClick={() => setLoginMethod('token')}
+          >
+            Token
+          </Button>
+          <Button 
+            type="button" 
+            variant={loginMethod === 'email' ? 'default' : 'outline'}
+            className="flex-1"
+            onClick={() => setLoginMethod('email')}
+          >
+            Email
+          </Button>
+        </div>
 
-            <Button 
-              type="submit" 
-              className="w-full"
-              disabled={isLoading}
-            >
-              {isLoading ? 'Validando...' : 'Ingresar'}
-            </Button>
-          </div>
-        </form>
+        {loginMethod === 'token' ? (
+          <form onSubmit={handleTokenLogin}>
+            <div className="space-y-4">
+              <div>
+                <label htmlFor="token" className="block text-sm font-medium text-gray-700 mb-1">
+                  Token de API
+                </label>
+                <Input
+                  id="token"
+                  type="text"
+                  placeholder="Ingresa tu token de acceso"
+                  value={token}
+                  onChange={(e) => setToken(e.target.value)}
+                  required
+                  className="w-full"
+                />
+              </div>
+
+              <Button 
+                type="submit" 
+                className="w-full"
+                disabled={isLoading}
+              >
+                {isLoading ? 'Validando...' : 'Ingresar con Token'}
+              </Button>
+            </div>
+          </form>
+        ) : (
+          <form onSubmit={handleEmailLogin}>
+            <div className="space-y-4">
+              <div>
+                <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
+                  Email
+                </label>
+                <Input
+                  id="email"
+                  type="email"
+                  placeholder="tu@email.com"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                  className="w-full"
+                />
+              </div>
+              <div>
+                <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
+                  Contraseña
+                </label>
+                <Input
+                  id="password"
+                  type="password"
+                  placeholder="Contraseña"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                  className="w-full"
+                />
+              </div>
+
+              <Button 
+                type="submit" 
+                className="w-full"
+                disabled={isLoading}
+              >
+                {isLoading ? 'Iniciando sesión...' : 'Ingresar con Email'}
+              </Button>
+            </div>
+          </form>
+        )}
       </div>
     </div>
   );
