@@ -18,9 +18,15 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({
 }) => {
   const navigate = useNavigate();
   
-  const handleLogout = async () => {
-    await AuthService.logout();
-    navigate('/');
+  const handleLogout = () => {
+    try {
+      // Simplificamos el cierre de sesión para evitar el bucle
+      localStorage.removeItem('estudio-km-token');
+      localStorage.removeItem('isAdmin');
+      navigate('/');
+    } catch (error) {
+      console.error("Error al cerrar sesión:", error);
+    }
   };
   
   return (
