@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
@@ -37,7 +38,7 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { toast } from "sonner";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase, getAdminClient } from "@/integrations/supabase/client";
 import { AuthService } from '@/services/AuthService';
 import { LogOut, Plus, Pencil, Trash, Users, Building, Key } from 'lucide-react';
 import { z } from "zod";
@@ -112,37 +113,52 @@ const Admin = () => {
   
   const loadCompanies = async () => {
     setIsLoadingCompanies(true);
-    const { data, error } = await supabase
-      .from('companies')
-      .select('*')
-      .order('created_at', { ascending: false });
-      
-    if (error) {
-      toast.error("Error al cargar empresas: " + error.message);
-    } else {
-      setCompanies(data || []);
+    try {
+      const { data, error } = await supabase
+        .from('companies')
+        .select('*')
+        .order('created_at', { ascending: false });
+        
+      if (error) {
+        console.error("Error loading companies:", error);
+        toast.error("Error al cargar empresas: " + error.message);
+      } else {
+        setCompanies(data || []);
+      }
+    } catch (error: any) {
+      console.error("Exception loading companies:", error);
+      toast.error("Error inesperado al cargar empresas");
+    } finally {
+      setIsLoadingCompanies(false);
     }
-    setIsLoadingCompanies(false);
   };
   
   const loadProfiles = async () => {
     setIsLoadingProfiles(true);
-    const { data, error } = await supabase
-      .from('profiles')
-      .select('*')
-      .order('created_at', { ascending: false });
-      
-    if (error) {
-      toast.error("Error al cargar usuarios: " + error.message);
-    } else {
-      setProfiles(data || []);
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .order('created_at', { ascending: false });
+        
+      if (error) {
+        console.error("Error loading profiles:", error);
+        toast.error("Error al cargar usuarios: " + error.message);
+      } else {
+        setProfiles(data || []);
+      }
+    } catch (error: any) {
+      console.error("Exception loading profiles:", error);
+      toast.error("Error inesperado al cargar usuarios");
+    } finally {
+      setIsLoadingProfiles(false);
     }
-    setIsLoadingProfiles(false);
   };
   
   const onCompanySubmit = async (values: z.infer<typeof companySchema>) => {
     try {
       setIsLoadingCompanies(true);
+      console.log("Creating company with values:", values);
       
       const { data, error } = await supabase
         .from('companies')
@@ -157,6 +173,7 @@ const Admin = () => {
         throw error;
       }
       
+      console.log("Company created successfully:", data);
       toast.success("Empresa creada exitosamente");
       companyForm.reset();
       setCompanyModalOpen(false);
@@ -171,6 +188,8 @@ const Admin = () => {
   
   const onUserSubmit = async (values: z.infer<typeof userSchema>) => {
     try {
+      console.log("Creating user with values:", values);
+      
       const { data: authData, error: authError } = await supabase.auth.admin.createUser({
         email: values.email,
         password: values.password,
@@ -181,7 +200,10 @@ const Admin = () => {
         }
       });
       
-      if (authError) throw authError;
+      if (authError) {
+        console.error("Error creating user auth:", authError);
+        throw authError;
+      }
       
       const { error: profileError } = await supabase
         .from('profiles')
@@ -193,13 +215,18 @@ const Admin = () => {
         })
         .eq('id', authData.user.id);
         
-      if (profileError) throw profileError;
+      if (profileError) {
+        console.error("Error updating profile:", profileError);
+        throw profileError;
+      }
       
+      console.log("User created successfully:", authData.user);
       toast.success("Usuario creado exitosamente");
       userForm.reset();
       setUserModalOpen(false);
       loadProfiles();
     } catch (error: any) {
+      console.error("Error details:", error);
       toast.error("Error al crear usuario: " + error.message);
     }
   };
