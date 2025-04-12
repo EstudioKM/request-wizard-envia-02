@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
@@ -114,7 +113,8 @@ const Admin = () => {
   const loadCompanies = async () => {
     setIsLoadingCompanies(true);
     try {
-      const { data, error } = await supabase
+      const adminClient = getAdminClient();
+      const { data, error } = await adminClient
         .from('companies')
         .select('*')
         .order('created_at', { ascending: false });
@@ -136,7 +136,8 @@ const Admin = () => {
   const loadProfiles = async () => {
     setIsLoadingProfiles(true);
     try {
-      const { data, error } = await supabase
+      const adminClient = getAdminClient();
+      const { data, error } = await adminClient
         .from('profiles')
         .select('*')
         .order('created_at', { ascending: false });
@@ -160,7 +161,8 @@ const Admin = () => {
       setIsLoadingCompanies(true);
       console.log("Creating company with values:", values);
       
-      const { data, error } = await supabase
+      const adminClient = getAdminClient();
+      const { data, error } = await adminClient
         .from('companies')
         .insert({
           name: values.name,
@@ -190,7 +192,8 @@ const Admin = () => {
     try {
       console.log("Creating user with values:", values);
       
-      const { data: authData, error: authError } = await supabase.auth.admin.createUser({
+      const adminClient = getAdminClient();
+      const { data: authData, error: authError } = await adminClient.auth.admin.createUser({
         email: values.email,
         password: values.password,
         email_confirm: true,
@@ -205,7 +208,7 @@ const Admin = () => {
         throw authError;
       }
       
-      const { error: profileError } = await supabase
+      const { error: profileError } = await adminClient
         .from('profiles')
         .update({
           first_name: values.first_name || null,

@@ -5,14 +5,15 @@ import type { Database } from './types';
 
 const SUPABASE_URL = "https://fbepoxpmkoejgimjiswp.supabase.co";
 const SUPABASE_PUBLISHABLE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZiZXBveHBta29lamdpbWppc3dwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDQ0MjYzODAsImV4cCI6MjA2MDAwMjM4MH0.-Isyl4fJku1klRMhxibfzHHo4m6gczWhAI9Q6a3bWag";
+const SUPABASE_SERVICE_ROLE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZiZXBveHBta29lamdpbWppc3dwIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc0NDQyNjM4MCwiZXhwIjoyMDYwMDAyMzgwfQ.BXJxwPi77Vre4e0DwJmuxNX-YsJh9Rvp1zlqP39QFOY";
 
 // Import the supabase client like this:
 // import { supabase } from "@/integrations/supabase/client";
 
 export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
 
-// Add service role key for admin operations (requires env variable)
+// Add service role key for admin operations
 // This client should only be used in secure admin contexts
 export const getAdminClient = () => {
-  return supabase;
+  return createClient<Database>(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 };
