@@ -65,6 +65,15 @@ const CustomFieldsEditor = () => {
   const fetchCustomFields = async () => {
     setIsLoading(true);
     setError(null);
+    
+    // Get the token from localStorage
+    const token = localStorage.getItem('estudio-km-token');
+    
+    if (!token) {
+      setError('No se encontró un token válido. Por favor inicia sesión nuevamente.');
+      setIsLoading(false);
+      return;
+    }
 
     try {
       let fields;
@@ -73,7 +82,7 @@ const CustomFieldsEditor = () => {
         const response = await http.get('https://app.estudiokm.com.ar/api/accounts/custom_fields', {
           headers: {
             'accept': 'application/json',
-            'X-ACCESS-TOKEN': '1330256.GzFpRpZKULHhFTun91Siftf93toXQImohKLCW75'
+            'X-ACCESS-TOKEN': token
           }
         });
         
@@ -116,7 +125,7 @@ const CustomFieldsEditor = () => {
       setFilteredFields(fields);
       
       if (fields.length > 0) {
-        await fetchAllFieldValues(fields);
+        await fetchAllFieldValues(fields, token);
       }
     } catch (err: any) {
       console.error('Error al cargar campos personalizados:', err);
@@ -132,7 +141,7 @@ const CustomFieldsEditor = () => {
     }
   };
 
-  const fetchAllFieldValues = async (fields: CustomField[]) => {
+  const fetchAllFieldValues = async (fields: CustomField[], token: string) => {
     if (fields.length === 0) return;
     
     setIsLoadingValues(true);
@@ -160,7 +169,7 @@ const CustomFieldsEditor = () => {
               response = await http.get(`https://app.estudiokm.com.ar/api/accounts/bot_fields/${field.id}`, {
                 headers: {
                   'accept': 'application/json',
-                  'X-ACCESS-TOKEN': '1330256.GzFpRpZKULHhFTun91Siftf93toXQImohKLCW75'
+                  'X-ACCESS-TOKEN': token
                 }
               });
               success = true;
@@ -168,7 +177,7 @@ const CustomFieldsEditor = () => {
               response = await http.get(`https://app.estudiokm.com.ar/api/accounts/custom_fields/name/${field.id}`, {
                 headers: {
                   'accept': 'application/json',
-                  'X-ACCESS-TOKEN': '1330256.GzFpRpZKULHhFTun91Siftf93toXQImohKLCW75'
+                  'X-ACCESS-TOKEN': token
                 }
               });
               success = true;
