@@ -1,4 +1,3 @@
-
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { Company } from "@/pages/Admin";
@@ -112,31 +111,28 @@ export const AuthService = {
     }
   },
   
-  // Verificar si el usuario es administrador usando la función is_admin_user()
+  // Verificar si el usuario es administrador usando una consulta directa a la tabla de perfiles
   isAdmin: async () => {
     try {
       // First check if the user is logged in via Supabase
       const { data } = await supabase.auth.getSession();
       if (!data.session) return false;
       
-      // Get user from localStorage for performance
-      const userJson = localStorage.getItem(USER_STORAGE_KEY);
-      if (userJson) {
-        const user = JSON.parse(userJson) as User;
-        return user.role === 'admin';
-      }
-      
-      // Si no está en localStorage, verificar si es admin usando la función RPC
-      console.log("Verificando si es admin usando RPC");
-      const { data: isAdmin, error } = await supabase.rpc('is_admin_user');
+      // Consultar directamente la tabla de perfiles
+      const { data: profileData, error } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', data.session.user.id)
+        .single();
       
       if (error) {
         console.error("Error al verificar si es admin:", error);
         return false;
       }
       
-      console.log("Resultado de is_admin_user:", isAdmin);
-      return !!isAdmin;
+      const isAdmin = profileData?.role === 'admin';
+      console.log("Resultado de consulta de admin:", isAdmin, "Rol:", profileData?.role);
+      return isAdmin;
     } catch (error) {
       console.error("Error al verificar rol de administrador:", error);
       return false;

@@ -31,17 +31,22 @@ const AdminRoute: React.FC<AdminRouteProps> = ({ children }) => {
         
         console.log("Usuario autenticado:", session.user.email);
         
-        // Check if the user is an admin using the RPC function
-        const { data: adminStatus, error } = await supabase.rpc('is_admin_user');
+        // Check if the user is an admin by querying the profiles table directly
+        const { data: profileData, error: profileError } = await supabase
+          .from('profiles')
+          .select('role')
+          .eq('id', session.user.id)
+          .single();
         
-        if (error) {
-          console.error("Error al verificar estado de administrador:", error);
+        if (profileError) {
+          console.error("Error al obtener perfil:", profileError);
           toast.error("Error al verificar permisos de administrador");
           setIsAdmin(false);
           return;
         }
         
-        console.log("Estado de administrador:", adminStatus);
+        const adminStatus = profileData?.role === 'admin';
+        console.log("Estado de administrador:", adminStatus, "Rol:", profileData?.role);
         setIsAdmin(adminStatus);
         
         if (!adminStatus) {
