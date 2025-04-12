@@ -17,7 +17,7 @@ export interface User {
 const USER_STORAGE_KEY = "current-user";
 
 export const AuthService = {
-  // Iniciar sesión
+  // Iniciar sesión - este método está ahora más simplificado porque usamos Supabase directamente en Login.tsx
   login: async (email: string, password: string) => {
     try {
       console.log(`Intentando iniciar sesión con email: ${email}`);
@@ -38,7 +38,7 @@ export const AuthService = {
         return { success: false, error: "Error al obtener información de usuario" };
       }
       
-      // Get user details using a direct query instead of relying on RLS
+      // Get user details using a direct query
       const { data: profileData, error: profileError } = await supabase
         .from('profiles')
         .select('role, company_id')
@@ -78,7 +78,6 @@ export const AuthService = {
       // Save user in localStorage
       localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(user));
       
-      toast.success("Inicio de sesión exitoso");
       return { success: true, user };
     } catch (error: any) {
       console.error("Error en login:", error);
@@ -113,7 +112,7 @@ export const AuthService = {
     }
   },
   
-  // Verificar si el usuario es administrador usando la nueva función is_admin_user()
+  // Verificar si el usuario es administrador usando la función is_admin_user()
   isAdmin: async () => {
     try {
       // First check if the user is logged in via Supabase
@@ -127,7 +126,8 @@ export const AuthService = {
         return user.role === 'admin';
       }
       
-      // If not in localStorage, check if user is admin using the RPC function
+      // Si no está en localStorage, verificar si es admin usando la función RPC
+      console.log("Verificando si es admin usando RPC");
       const { data: isAdmin, error } = await supabase.rpc('is_admin_user');
       
       if (error) {
@@ -135,7 +135,8 @@ export const AuthService = {
         return false;
       }
       
-      return isAdmin;
+      console.log("Resultado de is_admin_user:", isAdmin);
+      return !!isAdmin;
     } catch (error) {
       console.error("Error al verificar rol de administrador:", error);
       return false;

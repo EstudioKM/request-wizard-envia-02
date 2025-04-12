@@ -1,8 +1,9 @@
 
 import React, { useEffect, useState } from 'react';
-import { Navigate } from 'react-router-dom';
+import { Navigate, useNavigate } from 'react-router-dom';
 import { AuthService } from '@/services/AuthService';
 import { toast } from "sonner";
+import { supabase } from '@/integrations/supabase/client';
 
 interface AdminRouteProps {
   children: React.ReactNode;
@@ -11,6 +12,7 @@ interface AdminRouteProps {
 const AdminRoute: React.FC<AdminRouteProps> = ({ children }) => {
   const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const navigate = useNavigate();
   
   useEffect(() => {
     const checkAdminStatus = async () => {
@@ -18,17 +20,33 @@ const AdminRoute: React.FC<AdminRouteProps> = ({ children }) => {
         setIsLoading(true);
         
         // Check if the user is logged in
-        const isLoggedIn = await AuthService.isLoggedIn();
+        const { data: { session } } = await supabase.auth.getSession();
         
-        if (!isLoggedIn) {
+        if (!session) {
+          console.log("No hay sesión activa");
+          setIsAdmin(false);
+          toast.error("Debes iniciar sesión para acceder a esta página");
+          return;
+        }
+        
+        console.log("Usuario autenticado:", session.user.email);
+        
+        // Check if the user is an admin using the RPC function
+        const { data: adminStatus, error } = await supabase.rpc('is_admin_user');
+        
+        if (error) {
+          console.error("Error al verificar estado de administrador:", error);
+          toast.error("Error al verificar permisos de administrador");
           setIsAdmin(false);
           return;
         }
         
-        // Check if the user is an admin using the modified method
-        const adminStatus = await AuthService.isAdmin();
         console.log("Estado de administrador:", adminStatus);
         setIsAdmin(adminStatus);
+        
+        if (!adminStatus) {
+          toast.error("No tienes permisos de administrador para acceder a esta página");
+        }
       } catch (error) {
         console.error("Error al verificar estado de administrador:", error);
         setIsAdmin(false);
@@ -39,7 +57,7 @@ const AdminRoute: React.FC<AdminRouteProps> = ({ children }) => {
     };
     
     checkAdminStatus();
-  }, []);
+  }, [navigate]);
   
   if (isLoading) {
     return (
@@ -51,7 +69,6 @@ const AdminRoute: React.FC<AdminRouteProps> = ({ children }) => {
   }
   
   if (!isAdmin) {
-    toast.error("No tienes permisos de administrador para acceder a esta página");
     return <Navigate to="/" replace />;
   }
   
