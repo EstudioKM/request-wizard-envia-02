@@ -142,21 +142,30 @@ const Admin = () => {
   
   const onCompanySubmit = async (values: z.infer<typeof companySchema>) => {
     try {
+      setIsLoadingCompanies(true);
+      
       const { data, error } = await supabase
         .from('companies')
-        .insert([
-          { name: values.name, token: values.token }
-        ])
+        .insert({
+          name: values.name,
+          token: values.token
+        })
         .select();
         
-      if (error) throw error;
+      if (error) {
+        console.error("Error creating company:", error);
+        throw error;
+      }
       
       toast.success("Empresa creada exitosamente");
       companyForm.reset();
       setCompanyModalOpen(false);
       loadCompanies();
     } catch (error: any) {
+      console.error("Error details:", error);
       toast.error("Error al crear empresa: " + error.message);
+    } finally {
+      setIsLoadingCompanies(false);
     }
   };
   
