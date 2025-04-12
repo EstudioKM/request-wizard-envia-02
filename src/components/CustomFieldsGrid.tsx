@@ -1,4 +1,3 @@
-
 import React, { memo } from 'react';
 import { PlusCircle, Edit, Tag, FileText, Calendar, Hash, CheckSquare, AlignLeft, ArrowUpDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -9,7 +8,6 @@ import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/components/ui/use-toast';
 import { http } from '@/lib/http-client';
-import { toast } from "sonner";
 
 interface CustomField {
   id: number;
@@ -117,21 +115,12 @@ const CustomFieldsGrid: React.FC<CustomFieldsGridProps> = ({
     setIsSaving(true);
     
     try {
-      // Get the token from localStorage
-      const token = localStorage.getItem('estudio-km-token');
-      
-      if (!token) {
-        throw new Error('No token available. Please log in again.');
-      }
-      
-      console.log(`Saving value for field ${selectedField.id} with token: ${token.substring(0, 10)}...`);
-      
-      await http.post(`/api-proxy/api/accounts/bot_fields/${selectedField.id}`, 
+      await http.post(`https://app.estudiokm.com.ar/api/accounts/bot_fields/${selectedField.id}`, 
         `value=${encodeURIComponent(editedValue)}`,
         {
           headers: {
             'accept': 'application/json',
-            'x-access-token': token,
+            'X-ACCESS-TOKEN': '1330256.GzFpRpZKULHhFTun91Siftf93toXQImohKLCW75',
             'Content-Type': 'application/x-www-form-urlencoded'
           }
         }
@@ -149,9 +138,7 @@ const CustomFieldsGrid: React.FC<CustomFieldsGridProps> = ({
       
       toast({
         title: "Valor actualizado",
-        description: "El valor del campo ha sido actualizado correctamente en el servidor",
-        variant: "default",
-        className: "bg-green-50 text-green-800 border-green-200"
+        description: "El valor del campo ha sido actualizado correctamente en el servidor"
       });
     } catch (error) {
       console.error("Error al guardar valor en el servidor:", error);
@@ -167,13 +154,13 @@ const CustomFieldsGrid: React.FC<CustomFieldsGridProps> = ({
   
   const getTypeIcon = (type: string) => {
     switch (type) {
-      case '0': return <FileText className="h-5 w-5 text-blue-600" />;
-      case '1': return <Hash className="h-5 w-5 text-green-600" />;
-      case '2': return <Calendar className="h-5 w-5 text-purple-600" />;
-      case '3': return <ArrowUpDown className="h-5 w-5 text-amber-600" />;
-      case '4': return <CheckSquare className="h-5 w-5 text-indigo-600" />;
-      case '5': return <AlignLeft className="h-5 w-5 text-pink-600" />;
-      default: return <Tag className="h-5 w-5 text-gray-600" />;
+      case '0': return <FileText className="h-4 w-4 text-blue-600" />;
+      case '1': return <Hash className="h-4 w-4 text-green-600" />;
+      case '2': return <Calendar className="h-4 w-4 text-purple-600" />;
+      case '3': return <ArrowUpDown className="h-4 w-4 text-amber-600" />;
+      case '4': return <CheckSquare className="h-4 w-4 text-indigo-600" />;
+      case '5': return <AlignLeft className="h-4 w-4 text-pink-600" />;
+      default: return <Tag className="h-4 w-4 text-gray-600" />;
     }
   };
   
@@ -192,14 +179,14 @@ const CustomFieldsGrid: React.FC<CustomFieldsGridProps> = ({
   
   const getTypeColor = (type: string) => {
     switch (type) {
-      case '0': return 'field-type-0';
-      case '1': return 'field-type-1';
-      case '2': return 'field-type-2';
-      case '3': return 'field-type-3';
-      case '4': return 'field-type-4';
-      case '5': return 'field-type-5';
-      case '-1': return 'field-type--1';
-      default: return 'field-type--1';
+      case '0': return 'bg-blue-100 text-blue-800 hover:bg-blue-200';
+      case '1': return 'bg-green-100 text-green-800 hover:bg-green-200';
+      case '2': return 'bg-purple-100 text-purple-800 hover:bg-purple-200';
+      case '3': return 'bg-amber-100 text-amber-800 hover:bg-amber-200';
+      case '4': return 'bg-indigo-100 text-indigo-800 hover:bg-indigo-200';
+      case '5': return 'bg-pink-100 text-pink-800 hover:bg-pink-200';
+      case '-1': return 'bg-gray-100 text-gray-800 hover:bg-gray-200';
+      default: return 'bg-gray-100 text-gray-800 hover:bg-gray-200';
     }
   };
   
@@ -213,7 +200,7 @@ const CustomFieldsGrid: React.FC<CustomFieldsGridProps> = ({
   };
   
   const renderEmptyState = () => (
-    <div className="flex flex-col items-center justify-center py-16 bg-gray-50 rounded-xl border border-gray-200 text-center">
+    <div className="flex flex-col items-center justify-center py-16 bg-gray-50 rounded-lg border border-gray-200 text-center">
       <div className="text-gray-400 text-6xl mb-4">📋</div>
       <h3 className="text-lg font-medium text-gray-700 mb-2">No hay campos disponibles</h3>
       <p className="text-gray-500 text-center max-w-md mb-4">
@@ -222,7 +209,7 @@ const CustomFieldsGrid: React.FC<CustomFieldsGridProps> = ({
       {isEditable && (
         <Button
           variant="outline"
-          className="mt-2 border-dashed border-2 bg-white hover:bg-gray-50"
+          className="mt-2"
           onClick={onAddField}
         >
           <PlusCircle className="h-4 w-4 mr-2" />
@@ -238,13 +225,13 @@ const CustomFieldsGrid: React.FC<CustomFieldsGridProps> = ({
   return (
     <div className="space-y-6">
       {fields.length > 0 ? (
-        <div className="bg-white border rounded-xl shadow-sm overflow-hidden">
+        <div className="bg-white border rounded-lg shadow-sm overflow-hidden">
           <Table>
             <TableHeader>
               <TableRow className="bg-gray-50">
-                <TableHead className="w-1/4 font-semibold">Nombre del campo</TableHead>
-                <TableHead className="w-1/12 font-semibold">Tipo</TableHead>
-                <TableHead className="w-3/4 font-semibold">Valor</TableHead>
+                <TableHead className="w-1/4">Nombre del campo</TableHead>
+                <TableHead className="w-1/12">Tipo</TableHead>
+                <TableHead className="w-3/4">Valor</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -305,7 +292,7 @@ const CustomFieldsGrid: React.FC<CustomFieldsGridProps> = ({
                   )}
                 </div>
                 
-                <div className="bg-gray-50 p-4 rounded-xl border border-gray-200 mb-4">
+                <div className="bg-gray-50 p-4 rounded-md border border-gray-200 mb-4">
                   <h3 className="text-sm font-medium text-gray-700 mb-2">Información del campo</h3>
                   <div className="grid grid-cols-2 gap-4 text-sm">
                     <div>
@@ -348,7 +335,7 @@ const CustomFieldsGrid: React.FC<CustomFieldsGridProps> = ({
                   </Button>
                   <Button 
                     onClick={handleSaveValue} 
-                    className="bg-primary hover:bg-primary/90"
+                    className="bg-blue-600 hover:bg-blue-700"
                     disabled={isSaving}
                   >
                     {isSaving ? 'Guardando...' : 'Guardar cambios'}
