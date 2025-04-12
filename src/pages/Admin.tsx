@@ -159,7 +159,22 @@ const Admin = () => {
       
       console.log("Profiles loaded successfully:", profilesData);
       
-      const combinedProfiles = (profilesData || []).map(profile => {
+      const profiles = profilesData || [];
+      
+      const combinedProfiles = profiles.map(profile => {
+        if (!profile || !profile.id) {
+          console.error("Invalid profile object:", profile);
+          return {
+            id: 'unknown',
+            email: 'error@example.com',
+            first_name: null,
+            last_name: null,
+            company_id: null,
+            role: 'unknown',
+            created_at: new Date().toISOString()
+          };
+        }
+        
         const authUser = authUsers.users.find(u => u.id === profile.id);
         return {
           ...profile,
