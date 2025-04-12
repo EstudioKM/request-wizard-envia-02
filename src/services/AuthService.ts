@@ -39,21 +39,25 @@ const initDefaultCompanies = () => {
   const existingCompanies = localStorage.getItem(COMPANIES_STORAGE_KEY);
   
   if (!existingCompanies) {
+    const currentDate = new Date().toISOString();
     const defaultCompanies: Company[] = [
       {
         id: "1",
         name: "Empresa Demo",
-        token: "empresa-demo-token-123"
+        token: "empresa-demo-token-123",
+        created_at: currentDate
       },
       {
         id: "2",
         name: "Empresa Ejemplo S.A.",
-        token: "empresa-ejemplo-token-456"
+        token: "empresa-ejemplo-token-456",
+        created_at: currentDate
       },
       {
         id: "3",
         name: "Corporación ABC",
-        token: "corporacion-abc-token-789"
+        token: "corporacion-abc-token-789",
+        created_at: currentDate
       }
     ];
     
@@ -149,19 +153,26 @@ export const AuthService = {
       const companiesJson = localStorage.getItem(COMPANIES_STORAGE_KEY);
       if (!companiesJson) return [];
       
-      return JSON.parse(companiesJson);
+      const companies = JSON.parse(companiesJson);
+      
+      // Ensure all companies have created_at
+      return companies.map((company: any) => ({
+        ...company,
+        created_at: company.created_at || new Date().toISOString()
+      }));
     } catch (error) {
       console.error("Error al obtener empresas:", error);
       return [];
     }
   },
   
-  addCompany: (company: Omit<Company, "id">): Company => {
+  addCompany: (company: Omit<Company, "id" | "created_at">): Company => {
     try {
       const companies = AuthService.getCompanies();
       const newCompany: Company = {
         ...company,
-        id: Date.now().toString()
+        id: Date.now().toString(),
+        created_at: new Date().toISOString()
       };
       
       companies.push(newCompany);

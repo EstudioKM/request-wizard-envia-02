@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -70,6 +69,7 @@ const CreateCompanyDialog: React.FC<CreateCompanyDialogProps> = ({
       toast.error("Error al crear empresa: " + (error.message || "Error desconocido"));
     }
   };
+  
   
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>

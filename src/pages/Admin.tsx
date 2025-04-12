@@ -11,6 +11,7 @@ export type Company = {
   id: string;
   name: string;
   token: string;
+  created_at: string;
 };
 
 export type Profile = {
@@ -20,6 +21,7 @@ export type Profile = {
   last_name: string | null;
   company_id: string | null;
   role: string;
+  created_at: string;
 };
 
 const Admin = () => {
@@ -40,7 +42,12 @@ const Admin = () => {
     try {
       // Usamos el nuevo servicio para obtener empresas
       const companiesData = AuthService.getCompanies();
-      setCompanies(companiesData);
+      // Add created_at if it doesn't exist
+      const companiesWithCreatedAt = companiesData.map(company => ({
+        ...company,
+        created_at: company.created_at || new Date().toISOString()
+      }));
+      setCompanies(companiesWithCreatedAt);
     } catch (error: any) {
       console.error("Error loading companies:", error);
       toast.error("Error al cargar empresas: " + error.message);
@@ -60,7 +67,8 @@ const Admin = () => {
           first_name: "Admin",
           last_name: "User",
           company_id: null,
-          role: "admin"
+          role: "admin",
+          created_at: new Date().toISOString()
         },
         {
           id: "2",
@@ -68,7 +76,8 @@ const Admin = () => {
           first_name: "Empresa",
           last_name: "Usuario",
           company_id: "1",
-          role: "user"
+          role: "user",
+          created_at: new Date().toISOString()
         }
       ];
       
