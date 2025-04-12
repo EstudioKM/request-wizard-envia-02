@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
@@ -40,7 +39,7 @@ import {
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { AuthService } from '@/services/AuthService';
-import { LogOut, Plus, Pencil, Trash, Users, Buildings, Key } from 'lucide-react';
+import { LogOut, Plus, Pencil, Trash, Users, Building, Key } from 'lucide-react';
 import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -72,7 +71,6 @@ const Admin = () => {
   const [userModalOpen, setUserModalOpen] = useState(false);
   const [currentTab, setCurrentTab] = useState<'companies' | 'users'>('companies');
   
-  // Schemas para validación de formularios
   const companySchema = z.object({
     name: z.string().min(3, "El nombre debe tener al menos 3 caracteres"),
     token: z.string().min(6, "El token debe tener al menos 6 caracteres"),
@@ -87,7 +85,6 @@ const Admin = () => {
     role: z.enum(["admin", "user"]),
   });
   
-  // Forms
   const companyForm = useForm<z.infer<typeof companySchema>>({
     resolver: zodResolver(companySchema),
     defaultValues: {
@@ -108,7 +105,6 @@ const Admin = () => {
     },
   });
   
-  // Carga de datos
   useEffect(() => {
     loadCompanies();
     loadProfiles();
@@ -144,7 +140,6 @@ const Admin = () => {
     setIsLoadingProfiles(false);
   };
   
-  // Manejo de formularios
   const onCompanySubmit = async (values: z.infer<typeof companySchema>) => {
     try {
       const { data, error } = await supabase
@@ -167,7 +162,6 @@ const Admin = () => {
   
   const onUserSubmit = async (values: z.infer<typeof userSchema>) => {
     try {
-      // Crear usuario en auth con Supabase
       const { data: authData, error: authError } = await supabase.auth.admin.createUser({
         email: values.email,
         password: values.password,
@@ -180,7 +174,6 @@ const Admin = () => {
       
       if (authError) throw authError;
       
-      // Actualizar el perfil con datos adicionales
       const { error: profileError } = await supabase
         .from('profiles')
         .update({
@@ -202,7 +195,6 @@ const Admin = () => {
     }
   };
   
-  // Cerrar sesión
   const handleLogout = async () => {
     await AuthService.logout();
     navigate('/');
@@ -229,7 +221,6 @@ const Admin = () => {
           </Button>
         </header>
         
-        {/* Tabs de navegación */}
         <div className="border-b mb-6">
           <div className="flex space-x-6">
             <button
@@ -239,7 +230,7 @@ const Admin = () => {
               onClick={() => setCurrentTab('companies')}
             >
               <div className="flex items-center gap-2">
-                <Buildings size={18} />
+                <Building size={18} />
                 Empresas
               </div>
             </button>
@@ -257,7 +248,6 @@ const Admin = () => {
           </div>
         </div>
         
-        {/* Contenido de la tab seleccionada */}
         {currentTab === 'companies' && (
           <div className="space-y-4">
             <div className="flex justify-between items-center">
