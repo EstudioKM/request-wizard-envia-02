@@ -3,238 +3,106 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Label } from "@/components/ui/label";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
-import { http } from '@/lib/http-client';
-import { supabase } from "@/integrations/supabase/client";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { AuthService } from '@/services/AuthService';
 
 const Login = () => {
-  const [token, setToken] = useState('');
+  const navigate = useNavigate();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [loginMethod, setLoginMethod] = useState<'token' | 'email'>('token');
-  const navigate = useNavigate();
-
-  // Check if token exists in localStorage on component mount
+  
   useEffect(() => {
-    const savedToken = localStorage.getItem('estudio-km-token');
-    if (savedToken) {
-      // Validate token before auto-login
-      validateAndLogin(savedToken, true);
-    }
+    const checkAuth = async () => {
+      const isLoggedIn = await AuthService.isLoggedIn();
+      if (isLoggedIn) {
+        const isAdmin = await AuthService.isAdmin();
+        navigate(isAdmin ? '/admin' : '/dashboard');
+      }
+    };
     
-    // Check if admin is logged in
-    const isAdmin = localStorage.getItem('isAdmin') === 'true';
-    if (isAdmin) {
-      navigate('/admin');
-    }
+    checkAuth();
   }, [navigate]);
-
-  const validateAndLogin = async (tokenValue: string, isAutoLogin = false) => {
-    if (!tokenValue.trim()) {
-      setError('Por favor ingresa un token válido');
-      return;
-    }
-
-    setIsLoading(true);
-    setError(null);
-    
-    try {
-      // Test the token with a simple API call
-      const response = await http.get('/api-proxy/api/accounts/me', {
-        headers: {
-          'x-access-token': tokenValue
-        }
-      });
-      
-      // Guardando el token en localStorage
-      console.log('Token válido, guardando:', tokenValue);
-      localStorage.setItem('estudio-km-token', tokenValue);
-      
-      // Estableciendo el token para todas las solicitudes futuras
-      http.defaultOptions.headers = {
-        ...http.defaultOptions.headers,
-        'x-access-token': tokenValue
-      };
-      
-      console.log('Headers configurados:', http.defaultOptions.headers);
-      
-      if (!isAutoLogin) {
-        toast.success("Sesión iniciada correctamente con token: " + tokenValue.substring(0, 10) + "...");
-      }
-      
-      navigate('/dashboard');
-    } catch (err) {
-      console.error('Error validando token:', err);
-      setError('Token inválido o problemas de conexión. Por favor intenta nuevamente.');
-      
-      if (isAutoLogin) {
-        // Limpiar token inválido si el auto-login falla
-        localStorage.removeItem('estudio-km-token');
-      }
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleEmailLogin = async (e: React.FormEvent) => {
+  
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+    
     if (!email || !password) {
-      setError('Por favor ingresa email y contraseña');
+      toast.error("Por favor ingresa email y contraseña");
       return;
     }
-
+    
     setIsLoading(true);
-    setError(null);
     
     try {
-      // Verificar si son las credenciales de administrador
-      if (email === 'admin' && password === 'admin123') {
-        // En vez de intentar iniciar sesión con Supabase, simplemente marcamos al usuario como admin
-        localStorage.setItem('isAdmin', 'true');
-        toast.success("Sesión iniciada como administrador");
-        navigate('/admin');
-        return;
-      }
+      // Usar nuestro servicio de autenticación mejorado
+      const result = await AuthService.loginAsAdmin(email, password);
       
-      // Iniciar sesión normal con Supabase
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
-      
-      if (error) throw error;
-      
-      // Verificar si el usuario es administrador para redirigirlo correctamente
-      const { data: profileData, error: profileError } = await supabase
-        .from('profiles')
-        .select('role')
-        .eq('id', data.session?.user.id)
-        .single();
-        
-      if (profileError) {
-        console.error('Error al verificar el rol:', profileError);
-        toast.success("Sesión iniciada correctamente");
-        navigate('/dashboard');
-      } else if (profileData?.role === 'admin') {
-        toast.success("Sesión iniciada como administrador");
-        navigate('/admin');
+      if (result.success) {
+        // Verificar si es admin para redirigir
+        const isAdmin = await AuthService.isAdmin();
+        toast.success("Inicio de sesión exitoso");
+        navigate(isAdmin ? '/admin' : '/dashboard');
       } else {
-        toast.success("Sesión iniciada correctamente");
-        navigate('/dashboard');
+        toast.error("Credenciales incorrectas: " + (result.error || "Verifica tu email y contraseña"));
       }
-    } catch (err: any) {
-      console.error('Error en login:', err);
-      setError(err.message || 'Error al iniciar sesión');
+    } catch (error: any) {
+      console.error("Error de login:", error);
+      toast.error("Error al iniciar sesión: " + (error.message || "Error desconocido"));
     } finally {
       setIsLoading(false);
     }
   };
-
-  const handleTokenLogin = (e: React.FormEvent) => {
-    e.preventDefault();
-    validateAndLogin(token);
-  };
-
+  
   return (
-    <div className="min-h-screen w-full flex items-center justify-center bg-gray-50">
-      <div className="max-w-md w-full p-8 bg-white rounded-xl shadow-lg">
-        <div className="text-center mb-8">
-          <div className="h-16 w-16 rounded-full bg-gradient-to-r from-purple-600 to-blue-500 flex items-center justify-center text-white font-bold text-xl mx-auto mb-4">
-            E
+    <div className="min-h-screen flex items-center justify-center bg-gray-50">
+      <Card className="w-full max-w-md">
+        <CardHeader className="space-y-1">
+          <CardTitle className="text-2xl font-bold text-center">Iniciar Sesión</CardTitle>
+          <CardDescription className="text-center">
+            Ingresa tus credenciales para acceder
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={handleLogin} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="email">Email</Label>
+              <Input 
+                id="email" 
+                type="email" 
+                placeholder="tu@email.com" 
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                disabled={isLoading}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="password">Contraseña</Label>
+              <Input 
+                id="password" 
+                type="password" 
+                placeholder="••••••••" 
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                disabled={isLoading}
+              />
+            </div>
+            <Button type="submit" className="w-full" disabled={isLoading}>
+              {isLoading ? "Iniciando sesión..." : "Iniciar Sesión"}
+            </Button>
+          </form>
+        </CardContent>
+        <CardFooter className="text-center text-sm">
+          <div className="w-full text-center">
+            {/* Para fines de demostración, mostrar credenciales del admin */}
+            <p className="text-xs text-gray-500 mt-4">
+              Usuario demo: admin@example.com / Contraseña: admin123
+            </p>
           </div>
-          <h1 className="text-2xl font-bold text-gray-800">Estudio KM</h1>
-          <p className="text-gray-500 mt-2">Plataforma de administración</p>
-        </div>
-
-        {error && (
-          <Alert variant="destructive" className="mb-6">
-            <AlertDescription>{error}</AlertDescription>
-          </Alert>
-        )}
-
-        <Tabs defaultValue="token" onValueChange={(value) => setLoginMethod(value as 'token' | 'email')} className="mb-6">
-          <TabsList className="w-full">
-            <TabsTrigger value="token" className="flex-1">Token</TabsTrigger>
-            <TabsTrigger value="email" className="flex-1">Email</TabsTrigger>
-          </TabsList>
-          
-          <TabsContent value="token">
-            <form onSubmit={handleTokenLogin}>
-              <div className="space-y-4">
-                <div>
-                  <label htmlFor="token" className="block text-sm font-medium text-gray-700 mb-1">
-                    Token de API
-                  </label>
-                  <Input
-                    id="token"
-                    type="text"
-                    placeholder="Ingresa tu token de acceso"
-                    value={token}
-                    onChange={(e) => setToken(e.target.value)}
-                    required
-                    className="w-full"
-                  />
-                </div>
-
-                <Button 
-                  type="submit" 
-                  className="w-full"
-                  disabled={isLoading}
-                >
-                  {isLoading ? 'Validando...' : 'Ingresar con Token'}
-                </Button>
-              </div>
-            </form>
-          </TabsContent>
-          
-          <TabsContent value="email">
-            <form onSubmit={handleEmailLogin}>
-              <div className="space-y-4">
-                <div>
-                  <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
-                    Usuario o Email
-                  </label>
-                  <Input
-                    id="email"
-                    type="text"
-                    placeholder="admin o tu@email.com"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    required
-                    className="w-full"
-                  />
-                </div>
-                <div>
-                  <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
-                    Contraseña
-                  </label>
-                  <Input
-                    id="password"
-                    type="password"
-                    placeholder="Contraseña"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    required
-                    className="w-full"
-                  />
-                </div>
-
-                <Button 
-                  type="submit" 
-                  className="w-full"
-                  disabled={isLoading}
-                >
-                  {isLoading ? 'Iniciando sesión...' : 'Ingresar'}
-                </Button>
-              </div>
-            </form>
-          </TabsContent>
-        </Tabs>
-      </div>
+        </CardFooter>
+      </Card>
     </div>
   );
 };
