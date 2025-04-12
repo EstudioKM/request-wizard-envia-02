@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
@@ -167,6 +166,8 @@ const Admin = () => {
       console.log("Creating company with values:", values);
       
       const adminClient = getAdminClient();
+      console.log("Admin client created");
+      
       const { data, error } = await adminClient
         .from('companies')
         .insert({
@@ -187,7 +188,7 @@ const Admin = () => {
       loadCompanies();
     } catch (error: any) {
       console.error("Error details:", error);
-      toast.error("Error al crear empresa: " + error.message);
+      toast.error("Error al crear empresa: " + (error.message || "Error desconocido"));
     } finally {
       setIsLoadingCompanies(false);
     }
