@@ -18,8 +18,9 @@ export const getAdminClient = () => {
   // When creating the admin client, ensure auth property is correctly configured
   return createClient<Database>(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
     auth: {
-      autoRefreshToken: true,
-      persistSession: true
+      autoRefreshToken: false,
+      persistSession: false,
+      detectSessionInUrl: false
     }
   });
 };

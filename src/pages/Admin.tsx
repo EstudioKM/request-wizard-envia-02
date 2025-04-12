@@ -52,6 +52,11 @@ type Profile = {
   created_at: string;
 };
 
+type AuthUser = {
+  id: string;
+  email?: string;
+};
+
 const Admin = () => {
   const navigate = useNavigate();
   const [companies, setCompanies] = useState<Company[]>([]);
@@ -135,16 +140,20 @@ const Admin = () => {
       const adminClient = getAdminClient();
       console.log("Admin client created for profiles");
       
-      const { data: authUsersData, error: authError } = await adminClient.auth.admin.listUsers();
+      const authUsers: { users: AuthUser[] } = { users: [] };
       
-      if (authError) {
-        console.error("Error loading auth users:", authError);
-        toast.error("Error al cargar usuarios de autenticación: " + authError.message);
-        return;
+      try {
+        const { data: authUsersData, error: authError } = await adminClient.auth.admin.listUsers();
+        
+        if (authError) {
+          console.error("Error loading auth users:", authError);
+          toast.error("Error al cargar usuarios de autenticación: " + authError.message);
+        } else if (authUsersData) {
+          Object.assign(authUsers, authUsersData);
+        }
+      } catch (authErr: any) {
+        console.error("Exception loading auth users:", authErr);
       }
-      
-      const authUsers = authUsersData || { users: [] };
-      console.log("Auth users loaded successfully:", authUsers);
       
       const { data: profilesData, error: profilesError } = await adminClient
         .from('profiles')
