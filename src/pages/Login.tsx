@@ -7,6 +7,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { toast } from "sonner";
 import { http } from '@/lib/http-client';
 import { supabase } from "@/integrations/supabase/client";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 const Login = () => {
   const [token, setToken] = useState('');
@@ -84,6 +85,23 @@ const Login = () => {
     setError(null);
     
     try {
+      // Verificar si son las credenciales de administrador
+      if (email === 'admin' && password === 'admin123') {
+        // Iniciar sesión como administrador con Supabase
+        const { data, error } = await supabase.auth.signInWithPassword({
+          email: 'admin@estudiokm.com',
+          password: 'admin123',
+        });
+        
+        if (error) throw error;
+        
+        localStorage.setItem('isAdmin', 'true');
+        toast.success("Sesión iniciada como administrador");
+        navigate('/admin');
+        return;
+      }
+      
+      // Iniciar sesión normal con Supabase
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
@@ -123,94 +141,84 @@ const Login = () => {
           </Alert>
         )}
 
-        <div className="flex space-x-2 mb-6">
-          <Button 
-            type="button" 
-            variant={loginMethod === 'token' ? 'default' : 'outline'}
-            className="flex-1"
-            onClick={() => setLoginMethod('token')}
-          >
-            Token
-          </Button>
-          <Button 
-            type="button" 
-            variant={loginMethod === 'email' ? 'default' : 'outline'}
-            className="flex-1"
-            onClick={() => setLoginMethod('email')}
-          >
-            Email
-          </Button>
-        </div>
+        <Tabs defaultValue="token" onValueChange={(value) => setLoginMethod(value as 'token' | 'email')} className="mb-6">
+          <TabsList className="w-full">
+            <TabsTrigger value="token" className="flex-1">Token</TabsTrigger>
+            <TabsTrigger value="email" className="flex-1">Email</TabsTrigger>
+          </TabsList>
+          
+          <TabsContent value="token">
+            <form onSubmit={handleTokenLogin}>
+              <div className="space-y-4">
+                <div>
+                  <label htmlFor="token" className="block text-sm font-medium text-gray-700 mb-1">
+                    Token de API
+                  </label>
+                  <Input
+                    id="token"
+                    type="text"
+                    placeholder="Ingresa tu token de acceso"
+                    value={token}
+                    onChange={(e) => setToken(e.target.value)}
+                    required
+                    className="w-full"
+                  />
+                </div>
 
-        {loginMethod === 'token' ? (
-          <form onSubmit={handleTokenLogin}>
-            <div className="space-y-4">
-              <div>
-                <label htmlFor="token" className="block text-sm font-medium text-gray-700 mb-1">
-                  Token de API
-                </label>
-                <Input
-                  id="token"
-                  type="text"
-                  placeholder="Ingresa tu token de acceso"
-                  value={token}
-                  onChange={(e) => setToken(e.target.value)}
-                  required
+                <Button 
+                  type="submit" 
                   className="w-full"
-                />
+                  disabled={isLoading}
+                >
+                  {isLoading ? 'Validando...' : 'Ingresar con Token'}
+                </Button>
               </div>
+            </form>
+          </TabsContent>
+          
+          <TabsContent value="email">
+            <form onSubmit={handleEmailLogin}>
+              <div className="space-y-4">
+                <div>
+                  <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
+                    Usuario o Email
+                  </label>
+                  <Input
+                    id="email"
+                    type="text"
+                    placeholder="admin o tu@email.com"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    required
+                    className="w-full"
+                  />
+                </div>
+                <div>
+                  <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
+                    Contraseña
+                  </label>
+                  <Input
+                    id="password"
+                    type="password"
+                    placeholder="Contraseña"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    required
+                    className="w-full"
+                  />
+                </div>
 
-              <Button 
-                type="submit" 
-                className="w-full"
-                disabled={isLoading}
-              >
-                {isLoading ? 'Validando...' : 'Ingresar con Token'}
-              </Button>
-            </div>
-          </form>
-        ) : (
-          <form onSubmit={handleEmailLogin}>
-            <div className="space-y-4">
-              <div>
-                <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
-                  Email
-                </label>
-                <Input
-                  id="email"
-                  type="email"
-                  placeholder="tu@email.com"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  required
+                <Button 
+                  type="submit" 
                   className="w-full"
-                />
+                  disabled={isLoading}
+                >
+                  {isLoading ? 'Iniciando sesión...' : 'Ingresar'}
+                </Button>
               </div>
-              <div>
-                <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
-                  Contraseña
-                </label>
-                <Input
-                  id="password"
-                  type="password"
-                  placeholder="Contraseña"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  required
-                  className="w-full"
-                />
-              </div>
-
-              <Button 
-                type="submit" 
-                className="w-full"
-                disabled={isLoading}
-              >
-                {isLoading ? 'Iniciando sesión...' : 'Ingresar con Email'}
-              </Button>
-            </div>
-          </form>
-        )}
+            </form>
+          </TabsContent>
+        </Tabs>
       </div>
     </div>
   );

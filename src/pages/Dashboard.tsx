@@ -1,14 +1,17 @@
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import CustomFieldsEditor from "@/components/CustomFieldsEditor";
 import { Button } from '@/components/ui/button';
-import { LogOut } from 'lucide-react';
+import { LogOut, Settings } from 'lucide-react';
 import { http } from '@/lib/http-client';
 import { toast } from "sonner";
+import { AuthService } from '@/services/AuthService';
+import { supabase } from "@/integrations/supabase/client";
 
 const Dashboard = () => {
   const navigate = useNavigate();
+  const [isAdmin, setIsAdmin] = useState(false);
   
   useEffect(() => {
     // Check if token exists, if not redirect to login
@@ -26,18 +29,23 @@ const Dashboard = () => {
       console.log('Token establecido en headers:', http.defaultOptions.headers);
       toast.success("Sesión iniciada con token: " + token.substring(0, 10) + "...");
     }
+    
+    // Verificar si el usuario es administrador
+    checkAdminStatus();
   }, [navigate]);
   
-  const handleLogout = () => {
-    localStorage.removeItem('estudio-km-token');
-    // Clear the token from headers using bracket notation instead of dot notation
-    if (http.defaultOptions.headers) {
-      // Create a new headers object without the token
-      const newHeaders = { ...http.defaultOptions.headers };
-      delete newHeaders['x-access-token']; // Use bracket notation to access property with hyphen
-      http.defaultOptions.headers = newHeaders;
-    }
+  const checkAdminStatus = async () => {
+    const adminStatus = await AuthService.isAdmin();
+    setIsAdmin(adminStatus);
+  };
+  
+  const handleLogout = async () => {
+    await AuthService.logout();
     navigate('/');
+  };
+  
+  const goToAdmin = () => {
+    navigate('/admin');
   };
 
   return (
@@ -54,14 +62,27 @@ const Dashboard = () => {
             </p>
           </div>
           
-          <Button 
-            variant="outline" 
-            onClick={handleLogout}
-            className="flex items-center gap-2"
-          >
-            <LogOut size={16} />
-            Cerrar sesión
-          </Button>
+          <div className="flex gap-2">
+            {isAdmin && (
+              <Button 
+                variant="outline" 
+                onClick={goToAdmin}
+                className="flex items-center gap-2"
+              >
+                <Settings size={16} />
+                Panel de Admin
+              </Button>
+            )}
+            
+            <Button 
+              variant="outline" 
+              onClick={handleLogout}
+              className="flex items-center gap-2"
+            >
+              <LogOut size={16} />
+              Cerrar sesión
+            </Button>
+          </div>
         </header>
         
         <div className="max-w-6xl mx-auto">
