@@ -43,6 +43,13 @@ const CreateCompanyDialog: React.FC<CreateCompanyDialogProps> = ({
     },
   });
   
+  const generateToken = () => {
+    const randomStr = Math.random().toString(36).substring(2, 15);
+    const timestamp = Date.now().toString(36);
+    const token = `${form.getValues("name").toLowerCase().replace(/\s+/g, "-")}-token-${randomStr}-${timestamp}`;
+    form.setValue("token", token);
+  };
+  
   const onSubmit = async (values: z.infer<typeof companySchema>) => {
     try {
       console.log("Creating company with values:", values);
@@ -94,12 +101,25 @@ const CreateCompanyDialog: React.FC<CreateCompanyDialogProps> = ({
           </div>
           
           <div className="space-y-2">
-            <Label htmlFor="token">Token de Acceso *</Label>
-            <Input
-              id="token"
-              {...form.register("token")}
-              placeholder="Ingresa el token de acceso"
-            />
+            <Label htmlFor="token">Token de Acceso API *</Label>
+            <div className="flex space-x-2">
+              <Input
+                id="token"
+                {...form.register("token")}
+                placeholder="Ingresa o genera el token de acceso"
+                className="flex-1"
+              />
+              <Button 
+                type="button" 
+                variant="outline"
+                onClick={generateToken}
+              >
+                Generar
+              </Button>
+            </div>
+            <p className="text-xs text-gray-500">
+              Este token se utilizará como clave de autenticación para acceder a los endpoints de la API.
+            </p>
             {form.formState.errors.token && (
               <p className="text-sm text-red-500">{form.formState.errors.token.message}</p>
             )}

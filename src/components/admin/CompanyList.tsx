@@ -14,15 +14,10 @@ import {
   CardContent,
 } from "@/components/ui/card";
 import { toast } from "sonner";
-import { Key, Pencil, Trash } from 'lucide-react';
+import { Key, Pencil, Trash, Copy } from 'lucide-react';
 import CreateCompanyDialog from './CreateCompanyDialog';
 import { AuthService } from '@/services/AuthService';
-
-type Company = {
-  id: string;
-  name: string;
-  token: string;
-};
+import { Company } from '@/pages/Admin';
 
 interface CompanyListProps {
   companies: Company[];
@@ -51,6 +46,11 @@ const CompanyList: React.FC<CompanyListProps> = ({ companies, isLoading, onRefre
     }
   };
   
+  const copyToClipboard = (text: string) => {
+    navigator.clipboard.writeText(text);
+    toast.success("Token copiado al portapapeles");
+  };
+  
   return (
     <div className="space-y-4">
       <div className="flex justify-between items-center">
@@ -69,7 +69,7 @@ const CompanyList: React.FC<CompanyListProps> = ({ companies, isLoading, onRefre
             <TableHeader>
               <TableRow>
                 <TableHead>Nombre</TableHead>
-                <TableHead>Token</TableHead>
+                <TableHead>Token de API</TableHead>
                 <TableHead className="text-right">Acciones</TableHead>
               </TableRow>
             </TableHeader>
@@ -96,25 +96,23 @@ const CompanyList: React.FC<CompanyListProps> = ({ companies, isLoading, onRefre
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-2">
-                        <span className="font-mono bg-gray-100 px-2 py-1 rounded text-sm">
-                          {company.token.substring(0, 15)}...
+                        <span className="font-mono bg-gray-100 px-2 py-1 rounded text-sm truncate max-w-[200px]">
+                          {company.token}
                         </span>
                         <Button 
                           variant="ghost" 
                           size="sm" 
                           className="h-6 w-6 p-0"
-                          onClick={() => {
-                            navigator.clipboard.writeText(company.token);
-                            toast.success("Token copiado al portapapeles");
-                          }}
+                          onClick={() => copyToClipboard(company.token)}
+                          title="Copiar token"
                         >
-                          <Key size={14} />
+                          <Copy size={14} />
                         </Button>
                       </div>
                     </TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-2">
-                        <Button variant="outline" size="sm" className="h-8 w-8 p-0">
+                        <Button variant="outline" size="sm" className="h-8 w-8 p-0" title="Editar empresa">
                           <Pencil size={14} />
                         </Button>
                         <Button 
@@ -122,6 +120,7 @@ const CompanyList: React.FC<CompanyListProps> = ({ companies, isLoading, onRefre
                           size="sm" 
                           className="h-8 w-8 p-0"
                           onClick={() => handleDeleteCompany(company.id)}
+                          title="Eliminar empresa"
                         >
                           <Trash size={14} />
                         </Button>
@@ -134,6 +133,21 @@ const CompanyList: React.FC<CompanyListProps> = ({ companies, isLoading, onRefre
           </Table>
         </CardContent>
       </Card>
+      
+      <div className="mt-6 p-4 border rounded-lg bg-gray-50">
+        <h3 className="text-lg font-medium mb-2">Uso del Token API</h3>
+        <p className="text-sm text-gray-600 mb-2">
+          El token de API es la llave de acceso para los endpoints donde se consultan los campos personalizados de cada empresa.
+        </p>
+        <div className="bg-gray-100 p-3 rounded-md">
+          <code className="text-sm">
+            GET /api/custom-fields?token=empresa-token-123
+          </code>
+        </div>
+        <p className="text-sm text-gray-600 mt-2">
+          Incluye este token en las peticiones HTTP para autenticar y autorizar el acceso a los datos específicos de cada empresa.
+        </p>
+      </div>
     </div>
   );
 };

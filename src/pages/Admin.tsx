@@ -6,13 +6,14 @@ import CompanyList from '@/components/admin/CompanyList';
 import UserList from '@/components/admin/UserList';
 import { AuthService } from '@/services/AuthService';
 
-type Company = {
+// Define our types to match those expected by the components
+export type Company = {
   id: string;
   name: string;
   token: string;
 };
 
-type Profile = {
+export type Profile = {
   id: string;
   email: string;
   first_name: string | null;

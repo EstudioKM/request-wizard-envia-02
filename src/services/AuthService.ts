@@ -1,5 +1,6 @@
 
 import { toast } from "sonner";
+import { Company } from "@/pages/Admin";
 
 // Tipos de usuario
 type UserRole = "admin" | "user";
@@ -29,13 +30,6 @@ const predefinedPasswords: Record<string, string> = {
   "empresa@example.com": "empresa123"
 };
 
-// Empresas (se cargarán desde localStorage)
-interface Company {
-  id: string;
-  name: string;
-  token: string;
-}
-
 // Clave para almacenar el usuario actual en localStorage
 const USER_STORAGE_KEY = "current-user";
 const COMPANIES_STORAGE_KEY = "companies";
@@ -49,7 +43,17 @@ const initDefaultCompanies = () => {
       {
         id: "1",
         name: "Empresa Demo",
-        token: "empresa-demo-token"
+        token: "empresa-demo-token-123"
+      },
+      {
+        id: "2",
+        name: "Empresa Ejemplo S.A.",
+        token: "empresa-ejemplo-token-456"
+      },
+      {
+        id: "3",
+        name: "Corporación ABC",
+        token: "corporacion-abc-token-789"
       }
     ];
     
@@ -57,7 +61,7 @@ const initDefaultCompanies = () => {
     
     // Asignar el token a la empresa predefinida
     predefinedUsers["empresa@example.com"].company_id = "1";
-    predefinedUsers["empresa@example.com"].token = "empresa-demo-token";
+    predefinedUsers["empresa@example.com"].token = "empresa-demo-token-123";
   }
 };
 
