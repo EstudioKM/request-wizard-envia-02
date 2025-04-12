@@ -22,13 +22,18 @@ const predefinedUsers: Record<string, User> = {
   "empresa@example.com": {
     email: "empresa@example.com",
     role: "user"
+  },
+  "ADMIN": {
+    email: "ADMIN",
+    role: "admin"
   }
 };
 
 // Contraseñas predefinidas
 const predefinedPasswords: Record<string, string> = {
   "admin@example.com": "admin123",
-  "empresa@example.com": "empresa123"
+  "empresa@example.com": "empresa123",
+  "ADMIN": "ADMIN123"
 };
 
 // Clave para almacenar el usuario actual en localStorage
