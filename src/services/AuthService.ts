@@ -116,6 +116,7 @@ export const AuthService = {
   // Servicios para la gestión de empresas (CRUD)
   getCompanies: async (): Promise<Company[]> => {
     try {
+      console.log("Obteniendo empresas de Supabase...");
       const { data, error } = await supabase
         .from('companies')
         .select('*');
@@ -125,6 +126,7 @@ export const AuthService = {
         throw error;
       }
       
+      console.log("Empresas obtenidas con éxito:", data);
       return data || [];
     } catch (error) {
       console.error("Error al obtener empresas:", error);

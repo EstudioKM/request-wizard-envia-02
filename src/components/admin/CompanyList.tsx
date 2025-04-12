@@ -14,7 +14,7 @@ import {
   CardContent,
 } from "@/components/ui/card";
 import { toast } from "sonner";
-import { Key, Pencil, Trash, Copy } from 'lucide-react';
+import { Key, Pencil, Trash, Copy, RefreshCw } from 'lucide-react';
 import CreateCompanyDialog from './CreateCompanyDialog';
 import { AuthService } from '@/services/AuthService';
 import { Company } from '@/pages/Admin';
@@ -55,12 +55,23 @@ const CompanyList: React.FC<CompanyListProps> = ({ companies, isLoading, onRefre
     <div className="space-y-4">
       <div className="flex justify-between items-center">
         <h2 className="text-xl font-semibold">Lista de Empresas</h2>
-        
-        <CreateCompanyDialog 
-          open={companyModalOpen} 
-          onOpenChange={setCompanyModalOpen} 
-          onSuccess={onRefresh}
-        />
+        <div className="flex gap-2">
+          <Button 
+            variant="outline" 
+            onClick={onRefresh}
+            className="flex items-center gap-1"
+            disabled={isLoading}
+          >
+            <RefreshCw size={16} className={isLoading ? "animate-spin" : ""} />
+            Actualizar
+          </Button>
+          
+          <CreateCompanyDialog 
+            open={companyModalOpen} 
+            onOpenChange={setCompanyModalOpen} 
+            onSuccess={onRefresh}
+          />
+        </div>
       </div>
       
       <Card>

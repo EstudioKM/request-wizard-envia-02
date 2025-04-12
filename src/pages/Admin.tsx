@@ -41,8 +41,9 @@ const Admin = () => {
   const loadCompanies = async () => {
     setIsLoadingCompanies(true);
     try {
-      // Usamos Supabase para obtener empresas
+      // Obtener empresas de Supabase
       const companiesData = await AuthService.getCompanies();
+      console.log("Empresas cargadas:", companiesData);
       setCompanies(companiesData);
     } catch (error: any) {
       console.error("Error loading companies:", error);
