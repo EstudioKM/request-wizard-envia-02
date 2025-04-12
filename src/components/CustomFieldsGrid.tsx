@@ -1,4 +1,3 @@
-
 import React, { memo } from 'react';
 import { PlusCircle, Edit, Tag, FileText, Calendar, Hash, CheckSquare, AlignLeft, ArrowUpDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -8,6 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/components/ui/use-toast';
+import { http } from '@/lib/http-client';
 
 interface CustomField {
   id: number;
@@ -31,7 +31,6 @@ interface CustomFieldsGridProps {
   onAddField: () => void;
 }
 
-// Memoizamos los items de la tabla para evitar re-renders innecesarios
 const TableItem = memo(({ field, onClick, getTypeIcon, getTypeColor, getTypeLabel, truncateText }: { 
   field: CustomField; 
   onClick: () => void;
@@ -85,9 +84,9 @@ const CustomFieldsGrid: React.FC<CustomFieldsGridProps> = ({
   const [selectedField, setSelectedField] = React.useState<CustomField | null>(null);
   const [editedValue, setEditedValue] = React.useState<string>('');
   const [isEditDialogOpen, setIsEditDialogOpen] = React.useState(false);
+  const [isSaving, setIsSaving] = React.useState(false);
   const { toast } = useToast();
   
-  // Sort fields by type for better organization
   const sortedFields = React.useMemo(() => 
     [...fields].sort((a, b) => a.type.localeCompare(b.type)), 
     [fields]
@@ -110,10 +109,23 @@ const CustomFieldsGrid: React.FC<CustomFieldsGridProps> = ({
     setIsEditDialogOpen(true);
   };
   
-  const handleSaveValue = () => {
+  const handleSaveValue = async () => {
     if (!selectedField) return;
     
+    setIsSaving(true);
+    
     try {
+      await http.post(`https://app.estudiokm.com.ar/api/accounts/bot_fields/${selectedField.id}`, 
+        `value=${encodeURIComponent(editedValue)}`,
+        {
+          headers: {
+            'accept': 'application/json',
+            'X-ACCESS-TOKEN': '1330256.GzFpRpZKULHhFTun91Siftf93toXQImohKLCW75',
+            'Content-Type': 'application/x-www-form-urlencoded'
+          }
+        }
+      );
+      
       const updatedField = {
         ...selectedField,
         value: editedValue,
@@ -126,15 +138,17 @@ const CustomFieldsGrid: React.FC<CustomFieldsGridProps> = ({
       
       toast({
         title: "Valor actualizado",
-        description: "El valor del campo ha sido actualizado correctamente"
+        description: "El valor del campo ha sido actualizado correctamente en el servidor"
       });
     } catch (error) {
-      console.error("Error al guardar valor:", error);
+      console.error("Error al guardar valor en el servidor:", error);
       toast({
         title: "Error al guardar",
-        description: "No se pudo actualizar el valor del campo",
+        description: "No se pudo actualizar el valor del campo en el servidor",
         variant: "destructive"
       });
+    } finally {
+      setIsSaving(false);
     }
   };
   
@@ -176,7 +190,6 @@ const CustomFieldsGrid: React.FC<CustomFieldsGridProps> = ({
     }
   };
   
-  // Truncate long text for table display
   const truncateText = (text: any, maxLength = 80) => {
     if (text === undefined || text === null) return '—';
     
@@ -253,7 +266,6 @@ const CustomFieldsGrid: React.FC<CustomFieldsGridProps> = ({
         </div>
       )}
       
-      {/* Dialog for editing field values */}
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
         <DialogContent className="sm:max-w-3xl max-h-[90vh] overflow-y-auto">
           {selectedField && (
@@ -324,8 +336,9 @@ const CustomFieldsGrid: React.FC<CustomFieldsGridProps> = ({
                   <Button 
                     onClick={handleSaveValue} 
                     className="bg-blue-600 hover:bg-blue-700"
+                    disabled={isSaving}
                   >
-                    Guardar cambios
+                    {isSaving ? 'Guardando...' : 'Guardar cambios'}
                   </Button>
                 </div>
               </DialogFooter>
