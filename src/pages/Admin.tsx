@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
@@ -208,6 +209,7 @@ const Admin = () => {
       const adminClient = getAdminClient();
       console.log("Admin client created for company creation");
       
+      // Asegúrate de que estás usando el cliente administrativo para insertar la empresa
       const { data, error } = await adminClient
         .from('companies')
         .insert({
