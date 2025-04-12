@@ -35,30 +35,33 @@ const Login = () => {
       // Test the token with a simple API call
       const response = await http.get('/api-proxy/api/accounts/me', {
         headers: {
-          'x-access-token': tokenValue
+          'X-ACCESS-TOKEN': tokenValue
         }
       });
       
-      // If successful, save token and redirect
+      // Guardando el token en localStorage
+      console.log('Token válido, guardando:', tokenValue);
       localStorage.setItem('estudio-km-token', tokenValue);
       
-      // Set token globally for all requests
+      // Estableciendo el token para todas las solicitudes futuras
       http.defaultOptions.headers = {
         ...http.defaultOptions.headers,
         'x-access-token': tokenValue
       };
       
+      console.log('Headers configurados:', http.defaultOptions.headers);
+      
       if (!isAutoLogin) {
-        toast.success("Sesión iniciada correctamente");
+        toast.success("Sesión iniciada correctamente con token: " + tokenValue.substring(0, 10) + "...");
       }
       
       navigate('/dashboard');
     } catch (err) {
-      console.error('Error validating token:', err);
+      console.error('Error validando token:', err);
       setError('Token inválido o problemas de conexión. Por favor intenta nuevamente.');
       
       if (isAutoLogin) {
-        // Clear invalid token if auto-login fails
+        // Limpiar token inválido si el auto-login falla
         localStorage.removeItem('estudio-km-token');
       }
     } finally {

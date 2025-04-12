@@ -5,6 +5,7 @@ import CustomFieldsEditor from "@/components/CustomFieldsEditor";
 import { Button } from '@/components/ui/button';
 import { LogOut } from 'lucide-react';
 import { http } from '@/lib/http-client';
+import { toast } from "sonner";
 
 const Dashboard = () => {
   const navigate = useNavigate();
@@ -20,6 +21,10 @@ const Dashboard = () => {
         ...http.defaultOptions.headers,
         'x-access-token': token
       };
+      
+      // Verificar que el token se haya establecido correctamente
+      console.log('Token establecido en headers:', http.defaultOptions.headers);
+      toast.success("Sesión iniciada con token: " + token.substring(0, 10) + "...");
     }
   }, [navigate]);
   

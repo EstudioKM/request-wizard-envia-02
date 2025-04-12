@@ -9,9 +9,9 @@ import { Switch } from '@/components/ui/switch';
 import { useToast } from '@/components/ui/use-toast';
 import { Progress } from '@/components/ui/progress';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Badge } from '@/components/ui/badge';
 import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from '@/components/ui/table';
 import { http } from '@/lib/http-client';
+import { toast } from "sonner";
 import CustomFieldsGrid from './CustomFieldsGrid';
 
 interface CustomField {
@@ -79,7 +79,9 @@ const CustomFieldsEditor = () => {
       let fields;
       
       try {
-        const response = await http.get('https://app.estudiokm.com.ar/api/accounts/custom_fields', {
+        console.log('Obteniendo campos personalizados con token:', token);
+        
+        const response = await http.get('/api-proxy/api/accounts/custom_fields', {
           headers: {
             'accept': 'application/json',
             'X-ACCESS-TOKEN': token
@@ -166,7 +168,8 @@ const CustomFieldsEditor = () => {
             let success = false;
             
             try {
-              response = await http.get(`https://app.estudiokm.com.ar/api/accounts/bot_fields/${field.id}`, {
+              console.log(`Obteniendo valor para el campo ${field.id} con endpoint 1`);
+              response = await http.get(`/api-proxy/api/accounts/bot_fields/${field.id}`, {
                 headers: {
                   'accept': 'application/json',
                   'X-ACCESS-TOKEN': token
@@ -174,7 +177,8 @@ const CustomFieldsEditor = () => {
               });
               success = true;
             } catch (err) {
-              response = await http.get(`https://app.estudiokm.com.ar/api/accounts/custom_fields/name/${field.id}`, {
+              console.log(`Intentando endpoint alternativo para el campo ${field.id}`);
+              response = await http.get(`/api-proxy/api/accounts/custom_fields/name/${field.id}`, {
                 headers: {
                   'accept': 'application/json',
                   'X-ACCESS-TOKEN': token
