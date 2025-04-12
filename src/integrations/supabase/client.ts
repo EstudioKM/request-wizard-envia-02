@@ -10,21 +10,36 @@ const SUPABASE_SERVICE_ROLE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3Mi
 // Import the supabase client like this:
 // import { supabase } from "@/integrations/supabase/client";
 
-export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_ANON_KEY);
-
-// Add service role key for admin operations
-// This client should only be used in secure admin contexts
-export const getAdminClient = () => {
-  // Create a client with service role permissions
-  return createClient<Database>(
-    SUPABASE_URL, 
-    SUPABASE_SERVICE_ROLE_KEY, 
-    {
-      auth: {
-        autoRefreshToken: false,
-        persistSession: false,
-        detectSessionInUrl: false
-      }
+// Initialize the standard client for regular operations
+export const supabase = createClient<Database>(
+  SUPABASE_URL, 
+  SUPABASE_ANON_KEY,
+  {
+    auth: {
+      autoRefreshToken: true,
+      persistSession: true,
+      detectSessionInUrl: false
     }
-  );
+  }
+);
+
+// Initialize and cache the admin client to avoid multiple instances
+let adminClient: ReturnType<typeof createClient<Database>> | null = null;
+
+// Function to get the admin client for elevated operations
+export const getAdminClient = () => {
+  if (!adminClient) {
+    adminClient = createClient<Database>(
+      SUPABASE_URL, 
+      SUPABASE_SERVICE_ROLE_KEY, 
+      {
+        auth: {
+          autoRefreshToken: false,
+          persistSession: false,
+          detectSessionInUrl: false
+        }
+      }
+    );
+  }
+  return adminClient;
 };

@@ -16,10 +16,18 @@ const Login = () => {
   
   useEffect(() => {
     const checkAuth = async () => {
-      const isLoggedIn = await AuthService.isLoggedIn();
-      if (isLoggedIn) {
-        const isAdmin = await AuthService.isAdmin();
-        navigate(isAdmin ? '/admin' : '/dashboard');
+      try {
+        console.log("Verificando autenticación...");
+        const isLoggedIn = await AuthService.isLoggedIn();
+        console.log("Usuario autenticado:", isLoggedIn);
+        
+        if (isLoggedIn) {
+          const isAdmin = await AuthService.isAdmin();
+          console.log("Es administrador:", isAdmin);
+          navigate(isAdmin ? '/admin' : '/dashboard');
+        }
+      } catch (error) {
+        console.error("Error al verificar autenticación:", error);
       }
     };
     
@@ -37,15 +45,16 @@ const Login = () => {
     setIsLoading(true);
     
     try {
-      // Usar nuestro servicio de autenticación mejorado
+      console.log("Intentando iniciar sesión con:", email);
       const result = await AuthService.loginAsAdmin(email, password);
       
       if (result.success) {
         // Verificar si es admin para redirigir
         const isAdmin = await AuthService.isAdmin();
-        toast.success("Inicio de sesión exitoso");
+        console.log("Login exitoso. Es administrador:", isAdmin);
         navigate(isAdmin ? '/admin' : '/dashboard');
       } else {
+        console.error("Error en login:", result.error);
         toast.error("Credenciales incorrectas: " + (result.error || "Verifica tu email y contraseña"));
       }
     } catch (error: any) {
@@ -96,9 +105,8 @@ const Login = () => {
         </CardContent>
         <CardFooter className="text-center text-sm">
           <div className="w-full text-center">
-            {/* Para fines de demostración, mostrar credenciales del admin */}
             <p className="text-xs text-gray-500 mt-4">
-              Usuario demo: admin@example.com / Contraseña: admin123
+              Usuario admin: admin@example.com / Contraseña: admin123
             </p>
           </div>
         </CardFooter>
