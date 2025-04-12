@@ -25,10 +25,12 @@ const Dashboard = () => {
   
   const handleLogout = () => {
     localStorage.removeItem('estudio-km-token');
-    // Clear the token from headers
+    // Clear the token from headers using bracket notation instead of dot notation
     if (http.defaultOptions.headers) {
-      const { 'x-access-token': _, ...restHeaders } = http.defaultOptions.headers;
-      http.defaultOptions.headers = restHeaders;
+      // Create a new headers object without the token
+      const newHeaders = { ...http.defaultOptions.headers };
+      delete newHeaders['x-access-token']; // Use bracket notation to access property with hyphen
+      http.defaultOptions.headers = newHeaders;
     }
     navigate('/');
   };
